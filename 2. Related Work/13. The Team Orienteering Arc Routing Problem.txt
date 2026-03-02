@@ -1,0 +1,2876 @@
+ 
+Document downloaded from: 
+ 
+This paper must be cited as:  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+The final publication is available at 
+ 
+ 
+Copyright 
+ 
+Additional Information 
+ 
+http://dx.doi.org/10.1287/trsc.2013.0484
+http://hdl.handle.net/10251/61010
+INFORMS (Institute for Operations Research and Management Sciences)
+Archetti, C.; Speranza, MG.; Corberan, A.; Sanchís Llopis, JM.; Plana, I. (2014). The Team
+Orienteering Arc Routing Problem. Transportation Science. 48(3):442-457.
+doi:10.1287/trsc.2013.0484.
+
+The Team Orienteering Arc Routing Problem
+Claudia Archetti(1)
+´Angel Corber´an(2)∗
+Isaac Plana (4)
+Jos´e M. Sanchis (3)
+M. Grazia Speranza(1)
+(1) Dipartimento Metodi Quantitativi, Universit´a di Brescia, Italy
+(2) Departamento de Estad´ıstica e Investigaci´on Operativa, Universidad de Valencia, Spain
+(4) Departamento Matem´aticas para la Econom´ıa y la Empresa, Universidad de Valencia, Spain
+(3) Departamento de Matem´atica Aplicada, Universidad Polit´ecnica de Valencia, Spain
+{archetti, speranza}@eco.unibs.it,
+{angel.corberan, isaac.plana}@uv.es,
+jmsanchis@mat.upv.es
+September 26, 2012
+Abstract
+The Team Orienteering Arc Routing Problem (TOARP) is the extension to the arc
+routing setting of the Team Orienteering Problem (TOP). In the TOARP, in addition
+to a possible set of regular customers that have to be serviced, another set of potential
+customers is available. Each customer is associated with an arc of a directed graph. Each
+potential customer has a proﬁt that is collected when it is serviced, that is, when the
+associated arc is traversed. A ﬂeet of vehicles with a given maximum traveling time is
+available.
+The proﬁt from a customer can be collected by one vehicle at most.
+The
+objective is to identify the customers which maximize the total proﬁt collected while
+satisfying the given time limit for each vehicle.
+In this paper we propose a formulation for this problem and study its associated poly-
+hedron. We present some families of valid and facet-inducing inequalities that we use
+in the implementation of a branch-and-cut algorithm for the resolution of the problem.
+Computational experiments are run on a large set of benchmark instances.
+Keywords: Team Orienteering Arc Routing Problem, Proﬁts, Multi-vehicle, Facets,
+Branch and Cut.
+1
+Introduction
+A large number of papers have appeared in the literature studying routing problems where
+the set of customers to be visited (nodes or arcs) is given a priori. In the situations modeled,
+all customers to be visited are known at the time the optimization model is run.
+While
+this is indeed the case in many practical problems, there are several other diﬀerent practical
+situations. For example, not all customers may need to be visited and instead have to be
+selected from a set. In this paper we focus on an arc routing problem.
+Let us consider the following situation. Nowadays it is more and more frequent for demand
+for transportation services to be posted on the web, usually in speciﬁc databases, and carriers
+∗corresponding author
+
+can respond to that demand and oﬀer their services to some of these customers, possibly in
+the framework of an electronic auction.
+Thus, from within a set of potential customers,
+the carrier has to select those which are most convenient for him. In an electronic auction,
+the carrier will make a bid for these potential customers. In a truck-load type of service, a
+transportation service consists of reaching a node with an empty truck, ﬁlling the truck with
+a load, traversing an arc and unloading the truck completely. A ﬂeet of vehicles with limited
+traveling time is usually available to perform the service. The carrier may need to take into
+account a set of customers who need to be serviced because the carrier has regular contract
+with them. This is, in fact, the most common situation. The carrier looks for additional
+potential customers in order to fully use the unused traveling time of some of the vehicles.
+The situation described above can be modeled as an arc routing problem with proﬁts.
+Given a directed graph, a proﬁt is associated with each arc of a subset of the arcs (the arcs
+which represent potential customers). A traversing time is associated with each of the arcs
+of the graph. A ﬂeet of vehicles, each with a limited traveling time, is available to perform
+the service. The objective is to maximize the proﬁt collected.
+While a good number of papers are available on node routing problems with proﬁts (see the
+surveys [13] and [21]), very few are available on arc routing problems with proﬁts. Malandraki
+and Daskin [18] introduce the Maximum Beneﬁt Chinese Postman Problem (MBCPP) on a
+directed graph. Basically, in this problem several proﬁts are associated with each arc, one
+for each time the arc is traversed with a service, and the objective is to ﬁnd a closed walk
+with maximum proﬁt. In [19] and [20], some heuristic algorithms for solving the MBCPP on
+directed and undirected graphs are proposed, while in [10], the polyhedron associated with
+the undirected MBCPP is studied and a branch-and-cut algorithm is proposed.
+The Prize-Collecting Arc Routing Problem (PCARP), also called Privatized Rural Post-
+man Problem, is a special case of the MBCPP in which only the edges in a given subset
+have an associated beneﬁt that can be collected just once. The PCARP is introduced in [4],
+where an ILP formulation with binary variables is provided. In [3], an LP-based algorithm
+for solving the problem on undirected graphs is proposed. A related problem, the Clustered
+Prize-collecting Arc Routing Problem, is studied in [2] for undirected graphs and in [9] for
+‘windy’ graphs. Other arc routing problems with beneﬁts, such as the Proﬁtable Arc Tour
+Problem and the Undirected Capacitated Arc Routing Problem with Proﬁts, are studied in
+[14] and [6]. This last paper is the ﬁrst one devoted to a multi-vehicle arc routing problem
+with proﬁts.
+In this paper, we introduce another multi-vehicle arc routing problem with proﬁts, the
+TOARP. We study its associated polyhedron and propose a branch-and-cut algorithm for
+its exact resolution. The remainder of the paper is organized as follows. In Section 2 we
+deﬁne the problem and model it as an integer program. Sections 3 and 4 are devoted to
+the polyhedral study of the problem. The proposed branch-and-cut algorithm is presented in
+Section 5, while the computational experiments are described in Section 6. Finally, in Section
+7 some conclusions are drawn.
+2
+The Team Orienteering Arc Routing Problem
+We consider a directed graph G = (V, A), where V = {1, . . . , n} is the set of vertices and
+A is the set of arcs. Vertex 1 is the starting and ending point of each tour. A subset AR
+of A represents customers that have to be serviced obligatorily, while A′ ⊆A represents the
+set of potential customers. A nonnegative proﬁt sij is associated with each arc (i, j) ∈A′.
+A traveling time tij is associated with each arc (i, j) ∈A. A set of K vehicles is available
+2
+
+to service the customers. Each vehicle can visit any subset of the obligatory and potential
+customers within a given time limit Tmax. The proﬁt from each potential customer can be
+collected only once and by one vehicle at most. The objective of the Team Orienteering Arc
+Routing Problem (TOARP) is to maximize the total proﬁt collected while satisfying the time
+limit Tmax for each vehicle.
+In this paper it is assumed, without loss of generality, that all the vertices are incident
+with arcs in AR ∪A′. It can be seen that if G does not satisfy this condition, it can be
+transformed into an equivalent graph which does.
+We use the following notation. Given a subset of vertices S ⊆V , let A(S) be the set of
+arcs with both endpoints in S, A(S) = {(i, j) ∈A : i, j ∈S}. Similarly for A′(S) and AR(S).
+The subgraph of G induced by the set of vertices S is denoted by G(S). Given two disjoint
+sets S, T ⊆V , we deﬁne (S, T) = {(i, j) ∈A : i ∈S, j ∈T} and (S : T) = (S, T) ∪(T, S),
+and δ(S) = (S : V \ S). Finally, given a set of arcs W ⊂A and a vector x indexed by the
+arcs in A, x(W) =
+∑
+a∈W
+xa.
+We can formulate this problem by deﬁning the following variables:
+• For each (i, j) ∈A and each vehicle k = 1, . . . , K, let xk
+ij be the number of times that
+vehicle k traverses arc (i, j).
+• For each (i, j) ∈AR ∪A′ and each vehicle k = 1, . . . , K, let yk
+ij be a binary variable
+that takes value 1 if vehicle k services the customer (i, j), and value 0 otherwise.
+The corresponding model is:
+Maximize
+K
+∑
+k=1
+∑
+(i,j)∈A′
+sijyk
+ij
+s.t.:
+∑
+j∈V \{i}
+xk
+ij =
+∑
+j∈V \{i}
+xk
+ji
+∀i∈V,
+k = 1, . . . , K
+(1)
+∑
+i∈V \S,j∈S
+xk
+ij ≥yk
+a
+∀S ⊂V \{1},
+∀a ∈A′(S) ∪AR(S),
+k = 1, . . . , K
+(2)
+xk
+ij ≥yk
+ij
+∀(i, j)∈A′ ∪AR,
+k = 1, . . . , K
+(3)
+K
+∑
+k=1
+yk
+ij = 1
+∀(i, j) ∈AR
+(4)
+K
+∑
+k=1
+yk
+ij ≤1
+∀(i, j) ∈A′
+(5)
+∑
+(i,j)∈A
+tijxk
+ij ≤Tmax
+k = 1, . . . , K
+(6)
+xk
+ij ≥0 and integer
+∀(i, j) ∈A,
+k = 1, . . . , K
+(7)
+yk
+ij ∈{0, 1}
+∀(i, j) ∈A′ ∪AR,
+k = 1, . . . , K,
+(8)
+where (1) are the symmetry equations, connectivity constraints (2) ensure that each route
+servicing at least one arc is connected and goes through the depot, constraints (3) force each
+vehicle to traverse the arcs that it services, constraints (4) guarantee that each required arc
+3
+
+in AR is serviced by exactly one vehicle, constraints (5) ensure that the proﬁt from each
+potential customer is collected by at most one vehicle, and constraints (6) limit the length or
+time of each route.
+3
+The TOARP polyhedron
+As with the Capacitated Vehicle Routing Problem polytope or the Capacitated Arc Routing
+Problem polyhedron, determining the dimension of the polyhedron deﬁned as the convex
+hull of the TOARP solutions is a very diﬃcult task, because it does not depend only on
+the number of vertices and arcs, but also on the arc lengths tij, the number of vehicles K,
+and the time limit Tmax. In some cases, the dimension could even be zero. The diﬃculty in
+obtaining the dimension makes the task of proving that an inequality is facet-inducing for
+the polyhedron almost impossible in general. However, if we remove the constraints (6) that
+limit the length of each route, the resulting relaxed polyhedron can indeed be studied. We
+think this is interesting because some of its facets can also be facets of the original TOARP
+polyhedron and it is a way of guaranteeing the tightness of the constraints in the formulation
+and of the valid inequalities we can ﬁnd. Note that constraints (6) have the eﬀect of cutting
+oﬀpart of the relaxed polyhedron. The size of the part of the polyhedron that is cut oﬀ
+depends on how tight the time limit for the routes is.
+In what follows, we study the relaxed polyhedron deﬁned by the convex hull of the vectors
+(x1, y1, x2, y2, . . . , xK, yK) with (|A| + |AR| + |A′|)K components satisfying (1) to (5), (7),
+and (8). We call such a vector a TOARP solution, although it can violate the time limit
+constraints, and denote the resulting polyhedron by P. Note that solutions where a vehicle
+tour xk is formed of several disconnected subtours, one of them connecting all the arcs it
+services to the depot and the others traversing arcs not serviced by this vehicle are then
+permitted. This property is needed for the convex hull of the TOARP solutions to be a
+polyhedron. Note also that solutions where a given vehicle neither traverses nor services any
+arcs are also permitted.
+In this section we study the dimension of P and prove that most of the inequalities in the
+formulation deﬁne facets of it. In the following theorems we assume that AR ̸= ∅. The proof
+for the cases in which AR = ∅is similar.
+Theorem 1 If G is strongly connected then, for all K ≥1, the dimension of P is (|A| +
+|A′| −|V | + 1)K + |AR|(K −1).
+Proof: It can be proved that P is a polyhedron in ZK
+(
+|A|+|AR|+|A′|
+)
+. All its points satisfy the
+|AR| linearly independent equations (4) and the K|V | equations (1), K|V −1| of which are
+linearly independent. Therefore, dim(P)≤(|A| + |A′| −|V | + 1)K + |AR|(K −1).
+To prove the equality, we have to ﬁnd (|A| + |A′| −|V | + 1)K + |AR|(K −1) + 1 aﬃnely
+independent TOARP solutions (or linearly independent, because 0 /∈aﬀ(P) if AR ̸= ∅).
+Consider the (one vehicle) Directed General Routing Problem (DGRP) deﬁned on the
+graph G∗= (V, A), where the set of required arcs is given by A∗
+R = AR ∪A′ and all the
+vertices in V are required. Remember that the DGRP consists of ﬁnding a minimum cost
+tour on a directed graph traversing each required arc and visiting each required vertex at
+least once.
+If DGRP(G∗) denotes the associated polyhedron and given that the DGRP
+is a special case of the Mixed General Routing Problem (MGRP), with E = ∅, we have
+dim(DGRP(G∗))= |A| −|V | + 1 [11].
+4
+
+Let us denote m =dim(DGRP(G∗)).
+Since 0 ∈aﬀ(DGRP(G∗)), there are m linearly
+independent DGRP tours z1, z2, . . . , zm on G∗which traverse all the arcs in AR ∪A′ and visit
+all the vertices in V (and the depot in particular) at least once. From each DGRP tour, such
+as z1, we can build the following TOARP solution for vehicle 1:
+• x1 = z1, and y1
+a = 1 ∀a ∈AR and y1
+a = 0 ∀a ∈A′,
+• x2 = · · · = xK = 0 and y2
+a = · · · = yK
+a = 0 ∀a ∈AR ∪A′,
+in which vehicle 1 traverses all the arcs in AR ∪A′ as is done by z1, services all the arcs
+in AR but none in A′, and the remaining vehicles do nothing. This is the ﬁrst row of the
+matrix in Figure 1, where for the sake of simplicity we suppose we have K = 3 vehicles.
+A similar TOARP solution can be deﬁned from each DGRP tour zi, i = 1, . . . , m, thus
+obtaining the ﬁrst block row of the matrix. The same procedure can be repeated for each
+vehicle k = 1, . . . , K. These m×K TOARP solutions are represented in the ﬁrst 3 rows of
+blocks of the matrix in Figure 1, where a block with a large 0 or 1 represents a submatrix
+with all its entries 0 or 1, respectively.
+In the TOARP solutions represented in the last 3 rows of blocks of the matrix in Figure
+1, each vehicle k traverses all the arcs in AR ∪A′ as is done by z1; for example, it services all
+the arcs in AR plus exactly one arc in A′. Here, a block with a large I represents an identity
+submatrix.
+In the 4th and 5th rows of blocks, two diﬀerent vehicles traverse all the arcs in AR ∪A′
+and jointly service the arcs in AR. Row 6 represents a TOARP solution in which all the
+arcs in AR ∪A′ are traversed by each one of the 3 vehicles. One of them services the ﬁrst
+required arc and another one services the remaining arcs in AR. These (|A| + |A′| −|V | +
+1)K + |AR|(K −1) + 1 TOARP solutions are linearly independent because the matrix has
+full rank. Note that from the structure of the matrix we can assert that the result is also
+true for any value of K ≥2.
+♦
+In the following we assume that graph G is strongly connected. Moreover, as in the above
+theorem, in the proof of the theorems in this section, the matrices will be represented for the
+case with K = 3 vehicles, although the results are valid for any value of K.
+Theorem 2 If G \ {(i, j)} is strongly connected, then inequalities xk
+ij ≥0 are facet-inducing
+for P for all (i, j) ∈A \ (AR ∪A′) and for all k.
+Proof: Let us consider, for example, x1
+ij ≥0. We will ﬁnd d = dim(P) aﬃnely independent
+tours satisfying x1
+ij = 0. Since G \ {(i, j)} is strongly connected, xij ≥0 is facet-inducing
+for DGRP(G∗) (see [11]), where G∗= (V, A) is the graph with the set of required arcs
+A∗
+R = AR ∪A′ and all the vertices in V are required. Hence, there are m = |A| −|V | + 1
+aﬃnely independent tours w1, . . . , wm satisfying xij = 0. Let us assume that w1, . . . , wm−1
+are linearly independent. Furthermore, let z1, z2, . . . , zm be the m DGRP tours on G∗deﬁned
+in the proof of Theorem 1. Then the TOARP solutions written as rows in the matrix in Figure
+2 prove the result.
+♦
+Note 1 If (i, j) ∈AR ∪A′, then xk
+ij ≥0 is not facet-inducing for P because it is dominated
+by the corresponding inequality (3) xk
+ij ≥yk
+ij.
+Theorem 3 If G \ {(i, j)} is strongly connected, then inequalities yk
+ij ≥0 are facet-inducing
+for P for all (i, j) ∈AR ∪A′ and for all k.
+5
+
+x1
+x2
+x3
+y1
+AR
+y2
+AR
+y3
+AR
+y1
+A′
+y2
+A′
+y3
+A′
+z1
+...
+0
+0
+1
+0
+0
+0
+0
+0
+zm
+z1
+0
+...
+0
+0
+1
+0
+0
+0
+0
+zm
+z1
+0
+0
+...
+0
+0
+1
+0
+0
+0
+zm
+z1
+z1
+...
+...
+0
+I
+1-I
+0
+0
+0
+0
+z1
+z1
+z1
+z1
+0
+...
+...
+0
+I
+1-I
+0
+0
+0
+z1
+z1
+z1
+z1
+z1
+1 0 ... 0
+0 1 ... 1
+0
+0
+0
+0
+z1
+...
+0
+0
+1
+0
+0
+I
+0
+0
+z1
+z1
+0
+...
+0
+0
+1
+0
+0
+I
+0
+z1
+z1
+0
+0
+...
+0
+0
+1
+0
+0
+I
+z1
+Figure 1: TOARP solutions to prove dimension.
+Proof: For the arcs (i, j) ∈AR, the proof is similar to that of Theorem 2 and is omitted
+here. For the arcs (i, j) ∈A′, note that in the matrix shown in Figure 1 there is only a non-
+zero element in the column corresponding to arc (i, j) and vehicle k. If we remove the row
+containing this non-zero element, we obtain a full rank matrix whose vector rows represent
+TOARP solutions satisfying yk
+ij = 0.
+♦
+Note 2 Inequalities yk
+ij ≤1 are not facet-inducing for P because they are dominated by
+inequalities yk
+ij ≥0 and inequalities (4) or (5), either if (i, j) ∈AR or (i, j) ∈A′, respectively.
+Theorem 4 Inequalities (3) xk
+ij ≥yk
+ij are facet-inducing for P for all (i, j) ∈AR ∪A′ and
+for all k if G \ {(i, j)} is strongly connected.
+Proof: Let us consider, for example, x1
+ij ≥y1
+ij. We will ﬁnd d = dim(P) aﬃnely independent
+tours satisfying x1
+ij = y1
+ij. Again, since G \ {(i, j)} is strongly connected, xij ≥1, for each
+(i, j) ∈AR∪A′, is facet-inducing for DGRP(G∗) (see [11]). Hence, there are m = |A|−|V |+1
+aﬃnely independent (and linearly independent, because 0 is not in the aﬃne hull of the facet)
+tours w1, . . . , wm satisfying xij = 1. Then, from these tours we can construct the TOARP
+solutions shown in Figures 3 and 4 for the case (i, j) ∈AR and (i, j) ∈A′ respectively, where
+the columns corresponding to arc (i, j) are the ﬁrst ones in each block. It can be seen that
+the rank of both matrices is d −1.
+♦
+Theorem 5 Inequalities (5) ∑K
+k=1 yk
+ij ≤1, for all (i, j) ∈A′, are facet-inducing for P.
+Proof: We will ﬁnd d = dim(P) aﬃnely independent tours satisfying ∑K
+k=1 yk
+ij = 1.
+Let
+z1, z2, . . . , zm be the m DGRP tours on G∗deﬁned in the proof of Theorem 1. Then, from
+6
+
+x1
+x2
+x3
+y1
+AR
+y2
+AR
+y3
+AR
+y1
+A′
+y2
+A′
+y3
+A′
+w1
+...
+0
+0
+1
+0
+0
+0
+0
+0
+wm−1
+z1
+0
+...
+0
+0
+1
+0
+0
+0
+0
+zm
+z1
+0
+0
+...
+0
+0
+1
+0
+0
+0
+zm
+w1
+z1
+...
+...
+0
+I
+1-I
+0
+0
+0
+0
+w1
+z1
+z1
+z1
+0
+...
+...
+0
+I
+1-I
+0
+0
+0
+z1
+z1
+w1
+z1
+z1
+1 0 ... 0
+0 1 ... 1
+0
+0
+0
+0
+w1
+...
+0
+0
+1
+0
+0
+I
+0
+0
+w1
+z1
+0
+...
+0
+0
+1
+0
+0
+I
+0
+z1
+z1
+0
+0
+...
+0
+0
+1
+0
+0
+I
+z1
+Figure 2: TOARP solutions satisfying x1
+ij = 0.
+these tours we can construct the TOARP solutions shown in Figure 5, where the columns
+corresponding to arc (i, j) are the ﬁrst in each block. It can be seen that the rank of this
+matrix is d. Note that the ﬁrst row in the rows of blocks 1, 2 and 3 is the same as the ﬁrst
+one in the last three rows of blocks.
+♦
+Theorem 6 Inequalities (2), ∑
+i∈V \S,j∈S xk
+ij ≥yk
+a,
+are facet-inducing for P for all
+S ⊂
+V \{1}, for all a ∈A′(S)∪AR(S) and for all k ∈{1, . . . , K} if subgraphs G(S) and G(V \S)
+are strongly connected.
+Proof: Let S ⊂V \{1} and a ∈A′(S) ∪AR(S). Let us consider, for example, k = 1 and
+a ∈A′(S) (the case a ∈AR(S) is similar). We will ﬁnd d = dim(P) aﬃnely independent
+tours satisfying ∑
+i∈V \S,j∈S x1
+ij = y1
+a. Let z1, z2, . . . , zm be the m linearly independent DGRP
+tours on G∗deﬁned in the proof of Theorem 1. We deﬁne a DGRP instance G′ in which all
+the arcs in A are required except those in δ(S) and the depot is a required vertex. Given
+that subgraphs G(S) and G(V \S) are strongly connected, inequality ∑
+i∈V \S,j∈S xij ≥1 is
+facet-inducing for DGRP(G′) (see [11]) and there are m aﬃnely and linearly independent
+tours w1, w2, . . . , wm for the DGRP on G′ satisfying ∑
+i∈V \S,j∈S xij = 1. Note that these
+tours traverse only two arcs in δ(S) and therefore they are not able to service all the arcs in
+δ(S) ∩AR. Nevertheless, it can be seen that given any arc f ∈A′ ∪AR\{a}, there is a tour
+wi above that traverses arcs a and f (the fourth and ﬁfth rows of blocks in the matrix in
+Figure 6). It can be seen that the d vectors represented in the matrix in Figure 6 are linearly
+independent feasible solutions for the TOARP and satisfy ∑
+i∈V \S,j∈S x1
+ij = y1
+a.
+♦
+7
+
+x1
+x2
+x3
+y1
+AR
+y2
+AR
+y3
+AR
+y1
+A′
+y2
+A′
+y3
+A′
+w1
+...
+0
+0
+1
+0
+0
+0
+0
+0
+wm
+w1
+0
+...
+0
+0
+1
+0
+0
+0
+0
+wm
+w1
+0
+0
+...
+0
+0
+1
+0
+0
+0
+wm
+w1
+...
+0
+0
+1
+0
+0
+I
+0
+0
+w1
+w1
+0
+...
+0
+0
+1
+0
+0
+I
+0
+w1
+w1
+0
+0
+...
+0
+0
+1
+0
+0
+I
+w1
+w1
+w1
+1
+0
+...
+...
+0
+... 1-I
+...
+I
+0
+0
+0
+0
+w1
+w1
+1
+0
+w1
+w1
+0
+...
+...
+0
+1-I
+I
+0
+0
+0
+w1
+w1
+0
+w1
+w1
+0
+0 0 1 ... 1
+1 1 0 ... 0
+0
+0
+0
+Figure 3: TOARP solutions satisfying x1
+ij = y1
+ij for (i, j) ∈AR.
+4
+More valid inequalities
+In this section, we present several families of valid inequalities for the TOARP, the K-C,
+path-bridge, and max-length inequalities.
+4.1
+Path-bridge inequalities
+Path-bridge (PB) inequalities were introduced by Letchford [17] for the undirected General
+Routing Problem (GRP) and are based on the path inequalities for the Graphical Traveling
+Salesman Problem proposed by Cornu´ejols, Fonlupt, and Naddef [12]. They were extended
+to the MGRP and, hence, to the DGRP in [11]. We ﬁrst describe the PB inequalities for the
+DGRP and then we will extend them to the TOARP.
+Let G = (V, A) be a directed graph. Let us suppose that we have a subset AR ⊂A
+of required arcs and that all the vertices in V are also required. Let P ≥1 and B ≥0 be
+integers such that P + B ≥3 is an odd number, and let n1, n2, . . . , nP be integer numbers
+greater than or equal to 2. Let us deﬁne a partition
+{
+MA, MZ, {Ms
+q }s=1,...,P
+q=1,...,ns
+}
+of V satisfying
+that all the required arcs are contained either in MA ∪MZ or in a set M s
+q and (MA, MZ)
+contains a number B of required arcs. For the sake of simplicity we identify MA with M s
+0
+and MZ with Ms
+ns+1 for all s. Hence, a PB inequality is deﬁned by P paths from MA to MZ,
+each of them with ns + 2 node-sets, and by B required arcs joining the sets MA and MZ,
+which form the bridge. This conﬁguration is shown in Figure 7, where the number near each
+couple of arcs joining sets Ms
+q , Mt
+r represents the coeﬃcient bij associated with the variables
+in the PB inequality corresponding to all the arcs (i, j) ∈(Ms
+q , Mt
+r). These coeﬃcients are
+bij = c(Ms
+q , Mt
+r), where:
+• c(MA, MZ) = c(MZ, MA) = 1,
+8
+
+x1
+x2
+x3
+y1
+AR
+y2
+AR
+y3
+AR
+y1
+A′
+y2
+A′
+y3
+A′
+w1
+1
+...
+0
+0
+1
+0
+0
+... 0
+0
+0
+wm
+1
+w1
+0
+...
+0
+0
+1
+0
+0
+0
+0
+wm
+w1
+0
+0
+...
+0
+0
+1
+0
+0
+0
+wm
+w1
+1 0 ... 0
+...
+0
+0
+1
+0
+0
+...
+I
+0
+0
+w1
+1
+w1
+0
+...
+0
+0
+1
+0
+0
+I
+0
+w1
+w1
+0
+0
+...
+0
+0
+1
+0
+0
+I
+w1
+w1
+w1
+1
+...
+...
+0
+I
+1-I
+0
+... 0
+0
+0
+w1
+w1
+1
+w1
+w1
+0
+...
+...
+0
+I
+1-I
+0
+0
+0
+w1
+w1
+w1
+w1
+w1
+1 0 ... 0
+0 1 ... 1
+0
+1 0 ... 0
+0
+0
+Figure 4: TOARP solutions satisfying x1
+ij = y1
+ij for (i, j) ∈A′.
+• c(V s
+q , V s
+r ) = |q−r|
+ns−1 for all q, r ∈{0, 1, . . . , ns+1}, s∈{1, . . . , P},
+• c(V s
+q , V t
+r ) =
+1
+ns−1 +
+1
+nt−1 +
+ q−1
+ns−1 −r−1
+nt−1
+ for all s̸=t ∈{1, . . . , P},
+q ∈{1, . . . , ns}, r ∈{1, . . . , nt}.
+and bij = 0 otherwise. The PB inequality is then
+∑
+(i,j)∈A
+bij xij ≥1 +
+P
+∑
+s=1
+ns + 1
+ns −1 + B.
+(9)
+The right hand side of PB inequality (9) can also be written as
+∑
+(i,j)∈A
+bij xij ≥B +
+P
+∑
+s=1
+2ns
+ns −1 −P + 1.
+(10)
+The validity of the PB inequalities for the DGRP is based on the fact that all the DGRP
+solutions must traverse all the required arcs in (MA : MZ) and visit all the vertex sets M s
+q .
+Consider now a TOARP solution
+(x1, y1, x2, y2, . . . , xK, yK).
+Note that a given vehicle
+k ∈{1, . . . , K} is not obliged neither to traverse all the required arcs in (MA : MZ) nor to
+visit all the vertex sets Ms
+q . Hence, only replacing each variable xij in the PB inequality (10)
+by the corresponding variable xk
+ij is not enough to obtain a valid inequality for P. Variables
+yk
+ij are also needed in order to know which required arcs in (MA : MZ) are traversed and
+which vertex sets Ms
+q are visited by vehicle k. This leads to the disaggregate PB inequalities,
+corresponding to a vehicle k ∈{1, . . . , K}, that we describe next.
+9
+
+x1
+x2
+x3
+y1
+AR
+y2
+AR
+y3
+AR
+y1
+A′
+y2
+A′
+y3
+A′
+z1
+1
+...
+0
+0
+1
+0
+0
+... 0
+0
+0
+zm
+1
+z1
+1
+0
+...
+0
+0
+1
+0
+0
+... 0
+0
+zm
+1
+z1
+1
+0
+0
+...
+0
+0
+1
+0
+0
+... 0
+zm
+1
+z1
+z1
+1
+...
+...
+0
+I
+1-I
+0
+... 0
+0
+0
+z1
+z1
+1
+z1
+z1
+1
+0
+...
+...
+0
+I
+1-I
+0
+... 0
+0
+z1
+z1
+1
+z1
+z1
+z1
+1 0 ... 0
+0 1 ... 1
+0
+1 0 ... 0
+0
+0
+z1
+z1
+z1
+1 0 ... 0
+0 1 ... 1
+0
+0
+1 0 ... 0
+0
+z1
+z1
+z1
+1 0 ... 0
+0 1 ... 1
+0
+0
+0
+1 0 ... 0
+z1
+1
+...
+0
+0
+1
+0
+0
+...
+I
+0
+0
+z1
+1
+z1
+1
+0
+...
+0
+0
+1
+0
+0
+...
+I
+0
+z1
+1
+z1
+1
+0
+0
+...
+0
+0
+1
+0
+0
+...
+I
+z1
+1
+Figure 5: TOARP solutions satisfying y1
+ij + y2
+ij + y3
+ij = 1, for (i, j) ∈A′
+Given a partition
+{
+MA, MZ, {Ms
+q }s=1,...,P
+q=1,...,ns
+}
+of V , let F ⊂(MA : MZ)∩(AR ∪A′) be such
+that P + |F| ≥3 is an odd number and, for each s = 1, . . . , P, let Hs = {as
+1, as
+2, . . . , as
+ns} ⊂
+AR ∪A′ be such that each as
+q ∈AR(Ms
+q ) ∪A′(M s
+q ). Note that if vehicle k services the arc
+as
+q, i.e., if yk
+asq = 1, then vehicle k has to visit node M s
+q . On the other hand, if the depot
+1 /∈MA ∪MZ but, say, 1 ∈Mt
+r, then vehicle k is forced to visit set Mt
+r although it does not
+service the arc at
+r. For each vehicle k we call disaggregate PB inequality:
+∑
+(i,j)∈A
+bij xk
+ij ≥
+(
+2yk(F) −|F|
+)
++
+P
+∑
+s=1
+2
+ns−1 yk(Hs) −P + 1,
+if 1 ∈MA ∪MZ,
+(11)
+and, if for example 1 ∈Mt
+r, after redeﬁning Ht = {at
+1, at
+2, . . . , at
+nt} \ {at
+r} :
+∑
+(i,j)∈A
+bij xk
+ij ≥
+(
+2yk(F) −|F|
+)
++
+P
+∑
+s=1
+2
+ns−1 yk(Hs) +
+2
+nt −1 −P + 1.
+(12)
+We also consider PB inequalities related to a subset of vehicles. For a subset of vehicles
+Ω⊂{1, . . . , K} we call Ω-aggregate PB inequalities:
+∑
+(i,j)∈A
+bij
+∑
+k∈Ω
+xk
+ij ≥
+(
+2
+∑
+k∈Ω
+yk(F) −|F|
+)
++
+P
+∑
+s=1
+2
+ns−1
+∑
+k∈Ω
+yk(Hs) −P + 1,
+if 1 ∈MA ∪MZ,
+(13)
+10
+
+x1
+x2
+x3
+y1
+AR
+y2
+AR
+y3
+AR
+a
+y1
+A′
+a
+y2
+A′
+y3
+A′
+w1
+z1
+1
+0
+...
+...
+0
+0
+1
+0
+...
+0
+...
+1
+0
+wm
+z1
+1
+0
+z1
+0
+...
+0
+0
+1
+0
+0
+1
+0
+zm
+z1
+0
+0
+...
+0
+0
+1
+0
+0
+0
+zm
+wi
+z1
+1
+0
+...
+...
+0
+0
+1
+0
+...
+I
+...
+1-I
+0
+wr
+z1
+1
+0
+wj
+z1
+1
+0
+...
+...
+0
+I
+1-I
+0
+...
+0
+...
+1
+0
+ws
+z1
+1
+0
+z1
+z1
+0
+...
+...
+0
+0
+1
+0
+I
+1-I
+z1
+z1
+z1
+z1
+0
+...
+...
+0
+I
+1-I
+0
+0
+1
+z1
+z1
+z1
+0
+0
+...
+0
+0
+1
+0
+0
+I
+z1
+wi
+z1
+z1
+0
+1
+0
+1 1 0 ... 0
+0 0 1 ... 1
+0
+Figure 6: TOARP solutions satisfying
+∑
+i∈V \S,j∈S
+x1
+ij = y1
+a for a ∈A′.
+and, if 1 ∈Mt
+r, after redeﬁning Ht = {at
+1, at
+2, . . . , at
+nt} \ {at
+r}, :
+∑
+(i,j)∈A
+bij
+∑
+k∈Ω
+xk
+ij ≥
+(
+2
+∑
+k∈Ω
+yk(F) −|F|
+)
++
+P
+∑
+s=1
+2
+ns−1
+∑
+k∈Ω
+yk(Hs) +
+2
+nt −1 −P + 1.
+(14)
+Theorem 7 Disaggregate PB inequalities (11) and (12) and Ω-aggregate PB inequalities
+(13) and (14) are valid for P.
+Proof: We will prove it for the disaggregate PB inequalities (11) with the depot 1 ∈MA∪MZ
+and corresponding, for example, to the vehicle k = 1. The proof in other cases is similar. Let
+us call
+b0 = |F| +
+P
+∑
+s=1
+2ns
+ns −1 −P + 1 = |F| +
+P
+∑
+s=1
+ns + 1
+ns −1 + 1,
+that is, the right-hand side of the PB inequality (10) for the DGRP. We distinguish several
+cases.
+Let (x1, y1, x2, y2, . . . , xK, yK) be a TOARP solution such that vehicle 1 services all the
+arcs in F ∪H. Thus, vehicle 1 traverses all the arcs in F and visits all the sets Ms
+q . Given
+that the PB inequality (10) is valid for the DGRP, vector x1 satisﬁes ∑
+(i,j)∈A bij x1
+ij ≥b0. On
+the other hand, if vehicle 1 services all the arcs in F ∪H, then y1(F) = |F| and y1(Hs) = ns
+11
+
+
+
+MA
+
+
+MZ
+
+
+M1
+1
+
+
+M1
+2
+
+
+M1
+n1
+
+
+M2
+1
+
+
+M2
+2
+
+
+M2
+n2
+
+
+MP
+1
+
+
+MP
+2
+
+
+M P
+nP
+1
+n1−1
+1
+nP−1
+1
+n2−1
+1
+1
+n1−1
+1
+n1−1
+1
+n1−1
+1
+n2−1
+1
+n2−1
+1
+n2−1
+1
+nP−1
+1
+nP−1
+1
+nP−1
+1
+n1−1
+1
+n2−1
+1
+nP−1
+q
+q
+q
+q
+q
+q
+q
+q
+q
+q q q
+?
+6
+?
+6
+?
+6
+?6
+?6
+?6
+?6
+?6
+?6
+    
+    	
+@
+@
+@@
+R@
+@
+@
+@
+I
+@
+@
+@@
+R@
+@
+@
+@
+I
+    
+    	
+PPPPPPPPPPPPP
+qP
+P
+P
+P
+P
+P
+P
+P
+P
+P
+P
+P
+P
+P
+i
+
+1
+
+
+
+
+
+
+
+
+
+
+
+
+
+)
+?
+6
+Figure 7: Path-Bridge conﬁguration.
+for all s = 1, . . . , P. In this case, the right-hand side of the disaggregate PB inequalities (11)
+takes the value
+(
+2yk(F) −|F|
+)
++
+P
+∑
+s=1
+2
+ns−1 yk(Hs) −P + 1 =
+(
+2|F| −|F|
+)
++
+P
+∑
+s=1
+2ns
+ns−1 −P + 1 = b0,
+and hence the TOARP solution satisﬁes inequality (11).
+Let (x1, y1, x2, y2, . . . , xK, yK) be a TOARP solution such that vehicle 1 services all the
+arcs in F ∪H except an arc f ∈F. Therefore, vehicle 1 traverses |F| −1 arcs in (MA : MZ)
+and visits all the sets Ms
+q .
+Given that |F| −1 + P is an even number, the way of doing
+so minimizing the left-hand side of the constraint is to traverse the P paths once, with
+value ∑P
+s=1
+ns+1
+ns−1, and the |F| −1 arcs in (MA : MZ), with value |F| −1. Hence, vector x1
+satisﬁes ∑
+(i,j)∈A bij x1
+ij ≥b0 −2. On the other hand, vector y1 satisﬁes y1(F) = |F| −1 and
+y1(Hs) = ns for all s in this case, and the right-hand side of the disaggregate PB inequalities
+(11) takes the value
+(
+2|F| −2 −|F|
+)
++
+P
+∑
+s=1
+2ns
+ns−1 −P + 1 = b0 −2,
+and hence the TOARP solution satisﬁes inequality (11).
+Let (x1, y1, x2, y2, . . . , xK, yK) be a TOARP solution such that vehicle 1 services all the
+arcs in F ∪H except an arc at
+j ∈Ht. Therefore, vehicle 1 traverses all the arcs in F and
+12
+
+visits all the sets M s
+q
+except set Mt
+j in the path t. The way of doing this minimizing the
+left-hand side of the constraint, with value b0 −
+2
+nt−1, is to traverse the other P −1 paths
+once, the |F| arcs in (MA : MZ) and the path t twice, except for the arcs incident with node
+Mt
+j. Hence, vector x1 satisﬁes ∑
+(i,j)∈A bij x1
+ij ≥b0 −
+2
+nt−1. On the other hand, vector y1
+satisﬁes y1(F) = |F| and y1(Hs) = ns for all s, s ̸= t, and, in this case, y1(Ht) = nt −1.
+Thus, the right-hand side of the disaggregate PB inequalities (11) takes the value
+(
+2|F| −|F|
+)
++
+P
+∑
+s=1
+2ns
+ns−1 −
+2
+nt −1 −P + 1 = b0 −
+2
+nt −1,
+and hence the TOARP solution satisﬁes inequality (11).
+In the same way, it can be seen that the inequality (11) is satisﬁed by TOARP solutions
+in which vehicle 1 services any other number of arcs in F ∪H.
+♦
+4.1.1
+2-PB and n-regular PB inequalities
+We present here the special cases of PB inequalities in which P = 2, which are the only ones
+that are separated in the branch-and-cut algorithm, and the regular ones, in which all the
+paths are of the same length.
+If P = 2, the 2-PB inequality can be expressed with integer coeﬃcients by multiplying it
+by (n1 −1)(n2 −1). For example, inequalities (11) with P = 2 can be written as:
+(n1 −1)(n2 −1)
+∑
+(i,j)∈A
+bij xk
+ij ≥(n1 −1)(n2 −1)
+(
+2yk(F) −|F|
+)
++
++2(n2 −1)yk(H1) + 2(n1 −1)yk(H2) −(n1 −1)(n2 −1).
+(15)
+On the other hand, a PB inequality is called n-regular if all the P paths are of the same
+length n. In this case, by multiplying it by n−1, inequalities (11) to (14) can be rewritten in
+an easier way. For example, we can deﬁne H = H1 ∪· · · ∪HP and inequalities (11) can be
+written as:
+(n −1)
+∑
+(i,j)∈A
+bij xk
+ij ≥(n −1)
+(
+2yk(F) −|F|
+)
++ 2yk(H) −(n −1)(P −1).
+(16)
+Note that coeﬃcients in the regular case, (n −1)bij, are also simpler: variables corre-
+sponding to arcs in (V s
+q , V s
+r ) have a coeﬃcient equal to |q −r| and those corresponding to
+arcs (V s
+q , V t
+r ), s ̸= t,
+q, r ∈{1, 2, . . . , n}, now have a coeﬃcient equal to their ‘diﬀerence in
+level’ plus two, |i −j| + 2.
+4.1.2
+K-C inequalities
+K-C inequalities are well-known families of facet-inducing inequalities for other Arc Routing
+Problems. The name of this family of inequalities is motivated by the number of sets into
+which V is partitioned, which is usually denoted by K. To avoid confusion with the number
+of vehicles, in what follows we use the letter Q instead. A K-C inequality can be obtained as
+a particular case of PB inequalities with P = 1. It is deﬁned by a partition of V into Q + 1
+13
+
+sets {M0, M1, M2, . . . , MQ−1, MQ}. Hence MA = M0, MZ = MQ and n = Q −1. Given that
+it is a regular PB, after multiplying by n −1 = Q −2, we call disaggregate K-C inequality
+associated with vehicle k:
+∑
+(i,j)∈A
+(Q−2) bij xk
+ij ≥(Q−2)(2yk(F) −|F|) + 2yk(H),
+if 1 ∈M0 ∪MQ,
+(17)
+and
+∑
+(i,j)∈A
+(Q−2) bij xk
+ij ≥(Q−2)(2yk(F)−|F|)+2+2yk(H \{ar}),
+if 1 ∈Mr, r /∈{0, Q}, (18)
+where Q ≥3, F ⊂(M0 :MQ) ∩(AR ∪A′) with |F| ≥2 and even, and H = {a1, . . . , aQ−1}
+with each ar ∈AR(Mr) ∪A′(Mr). The coeﬃcients (Q−2) bij of the variables in the inequal-
+ity are shown in Figure 8, where each number represents the coeﬃcient of the variable xk
+ij
+associated with the traversal of the corresponding arc:
+(Q−2) bij =
+
+
+
+Q −2
+if (i, j) ∈(M0 : MQ)
+|r −s|
+if (i, j) ∈(Mr : Ms), {r, s} ̸= {0, Q}
+0
+otherwise.
+
+
+M0
+
+
+MQ
+
+
+M1
+
+
+M2
+
+
+MQ−1
+
+
+MQ−2
+
+
+Mr
+-
+
+-
+
+      	
+@
+@@
+R
+@
+@
+@
+I
+HH
+j
+H
+H
+Y
+
+*
+
+
+
+A
+AU
+A
+AK
+
+ 
+
+...
+. . .
+'
+&
+$
+%
+HHHHHHHHHH
+j
+r−1
+??
+66
+Q−2
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+Figure 8: K-C conﬁguration
+We can also consider K-C inequalities related to a subset of vehicles Ω⊂{1, . . . , K},
+called Ω-aggregate K-C inequalities:
+∑
+(i,j)∈A
+(Q−2) bij
+∑
+k∈Ω
+xk
+ij ≥(Q−2)
+( ∑
+k∈Ω
+2yk(F) −|F|
+)
++
+∑
+k∈Ω
+2yk(H),
+if 1 ∈M0 ∪MQ, (19)
+and, if
+1∈Mr, r /∈{0, Q},
+∑
+(i,j)∈A
+(Q−2) bij
+∑
+k∈Ω
+xk
+ij ≥(Q−2)
+( ∑
+k∈Ω
+2yk(F) −|F|
+)
++ 2 +
+∑
+k∈Ω
+2yk(H\{ar}).
+(20)
+14
+
+4.2
+Max-time constraints
+In this subsection we introduce some valid inequalities that are derived from inequalities (6)
+which limit the maximum length of the routes.
+Given a set of required arcs and a set of required vertices, remember that the Directed
+General Routing Problem (DGRP) consists of ﬁnding the tour of minimum cost traversing
+all the required arcs and visiting all the required vertices at least once. Let F ⊂AR ∪A′ and
+consider the DGRP instance in which the set of required arcs is F, the depot is considered
+a required vertex and the costs of each arc (i, j) is tij. Then, let z(F) represent the optimal
+value of this DGRP instance. Note that, if z(F) > Tmax then we have:
+(1) A single vehicle k cannot service all the arcs in F and hence all the feasible solutions
+satisfy
+yk(F) ≤|F| −1
+k = 1, 2, . . . , K.
+(21)
+(2) If all the arcs in F are serviced, then at least two vehicles must enter S = V (F) and,
+therefore, all the feasible solutions satisfy
+K
+∑
+k=1
+xk(δ(S)) ≥4
+( K
+∑
+k=1
+yk(F) −|F| + 1
+)
+.
+(22)
+In general, let p =
+⌈z(F)
+Tmax
+⌉
+and suppose that z(F) > (p−1) Tmax. Then,
+∑
+k∈Ω
+yk(F) ≤|F| −1
+∀Ω⊆{1, 2, . . . , K} such that |Ω| = p−1,
+and
+(23)
+K
+∑
+k=1
+xk(δ(S)) ≥2 p
+( K
+∑
+k=1
+yk(F) −|F| + 1
+)
+(24)
+are valid inequalities for the TOARP.
+Finally, consider, for instance, that K = 5 and p = 3. In this case, when all the arcs in
+F are serviced, at least 3 vehicles must traverse the cut-set δ(S). Therefore, from any subset
+with 4 vehicles, at least 2 vehicles must traverse δ(S), and from any subset with 3 vehicles, at
+least one vehicle must traverse it. In general, let r be any integer such that p −(Kr) ≥1 and
+r ≤K. For any subset with r vehicles, Ω= {k1, k2, . . . , kr} ⊆{1, 2, . . . , K}, the following
+inequality is satisﬁed by all the feasible solutions:
+∑
+k∈Ω
+xk(δ(S)) ≥2 (p −(K −r))
+( K
+∑
+k=1
+yk(F) −|F| + 1
+)
+.
+(25)
+Inequalities (23) are called max-time y-constraints, since they are related to y variables
+only, while inequalities (24) and (25) are called max-time x-constraints.
+5
+The branch-and-cut algorithm
+In this section we present a branch-and-cut algorithm that incorporates separation algo-
+rithms for the inequalities described in this paper as well as a lower bound obtained by the
+metaheuristic algorithm presented in [5].
+15
+
+5.1
+Antisymmetry constraints
+Note that given a feasible solution for the TOARP, if the routes associated with two diﬀerent
+vehicles are switched, another feasible solution is obtained. Therefore, we have a very large
+number of equivalent solutions, which hinders the resolution of the problem. To avoid this,
+we present a set of constraints based on those proposed in [15].
+Let us suppose we order the required and optional arcs as a1, a2, . . . , aK, . . . , am, where
+m = |AR ∪A′|. The following inequalities help to avoid the symmetry among the vehicles:
+• If a1 ∈AR, then we add the equation y1
+a1 = 1.
+• If a1 ∈A′, we add the equation y2
+a1 = 0 and the inequalities y2
+ai ≤
+i−1
+∑
+j=1
+y1
+aj, ∀i = 2, . . . , m.
+• In any case, for each k = 3, . . . , K, we add the equations yk
+ai = 0, ∀i ≤k −1 and the
+inequalities yk
+ai ≤
+i−1
+∑
+j=k−1
+yk−1
+aj
+, ∀i ≥k.
+5.2
+Initial relaxation
+The initial LP relaxation contains symmetry equations (1), traversing inequalities (3), equa-
+tions (4) and inequalities (5), ensuring that each required arc is serviced by exactly one vehicle
+and each optional arc by at most one vehicle, inequalities (6) limiting the length of the routes,
+trivial inequalities (xk
+ij ≥0 and 0 ≤yk
+ij ≤1), a connectivity inequality (2) associated with
+each connected component induced by the required arcs, and the set of antisymmetry con-
+straints described above. For this last set of inequalities, the required and optional arcs are
+ordered based on their distance to the depot. The arc that is farthest from the depot is
+chosen as the ﬁrst one in the permutation. The following ones are chosen so that the distance
+to the depot and those already selected is maximal.
+Furthermore, we add the max-time x and y-constraints associated with all the subsets of
+1, 2, and 3 required and optional arcs, such that more than one vehicle is needed to service
+them. Finally, if more than one vehicle is needed to service all the required arcs in the graph,
+we add some more max-time x and y-constraints considering the cutsets deﬁned by the depot
+and some of its adjacent vertices.
+5.3
+Separation algorithms
+In this section we present the separation algorithms that have been used to identify the
+following types of inequalities that are violated by the current LP solution at any iteration
+of the cutting plane algorithm: disaggregate and Ω-aggregate K-C and PB inequalities, and
+max-time x and y-constraints. Heuristic and exact separation procedures for connectivity
+inequalities (2) are described in [7].
+Given an LP solution (x1, y1, x2, y2, . . . , xK, yK) ∈R(2|E|+|ER|)K, we deﬁne the Ω-aggregate
+vector xΩassociated with a subset Ω⊂{1, 2, . . . , K} of vehicles as xΩ= ∑
+k∈Ωxk and its
+associated weighted graph as G
+Ω= (V
+Ω, E
+Ω, xΩ, yΩ), where V
+Ω, E
+Ωare the sets of vertices
+and edges of the subgraph of G induced by the edges e ∈E such that xΩ
+e = xΩ
+ij + xΩ
+ji > 0,
+plus the depot, if necessary. Note that both disaggregate and Ω-aggregate inequalities of
+a given family can be separated with the same procedure, changing only the corresponding
+input graph G
+Ω.
+16
+
+5.3.1
+Separation of K-C and 2-PB inequalities
+The separation algorithms for disaggregate and Ω-aggregate K-C inequalities is similar to
+that described in [7] for the Min-Max K-vehicles Windy Rural Postman Problem.
+Figure 9: Construction of a PB in the separation algorithm.
+A heuristic algorithm based on similar ideas to the ones implemented for the K-C sep-
+aration has been devised for identifying violated 2-PB inequalities (with only two paths),
+like those described in Section 4.1.1. More precisely, for a given Ω⊂{1, 2, . . . , K} and its
+associated weighted graph G
+Ω, the algorithm consists of several phases. Let C1, . . . , CR be
+the connected components in G induced by the required and optional arcs.
+• For each Ci, we try to partition it into two parts MA and MZ such that the number
+of required and optional arcs with xΩvalue near 1 is odd, and such that both MA and
+MZ have at least two arcs in G
+Ωconnecting two other diﬀerent connected components.
+• Given these seeds for MA and MZ, consider the graph obtained from G
+Ωby shrinking
+the seeds and the remaining Cj into a single vertex each. To deﬁne the two paths
+linking MA and MZ, we compute a tree by iteratively adding the edge of maximum
+xΩ-weight not forming a cycle and not connecting the seeds (see Figure 9(a)). This
+tree contains a path joining MA and MZ. We remove it and obtain a graph similar to
+the one depicted in Figure 9(b), where MA and MZ are not connected. We complete
+the tree with edges of maximum xΩ-weight until another path linking MA and MZ is
+obtained (see Figure 9(c)). We iteratively shrink each vertex with degree one in the
+tree into its unique adjacent vertex in order to obtain two paths joining MA and MZ
+(see Figure 9(d)). Finally, all the isolated vertices are shrunk into an adjacent vertex
+in the original graph G (see Figure 9(e)).
+17
+
+• We now have a 2-PB conﬁguration. Set F is formed of the required and optional arcs
+in (MA, MZ) with xΩvalue near 1. For each set M s
+q not containing the depot, we select
+the required or optional arc with maximum yΩweight to deﬁne the sets H1 and H2.
+The corresponding 2-PB inequality is checked for violation. If it is not violated, we try
+to shrink the 2-PB conﬁguration by merging some adjacent sets Ms
+q .
+5.3.2
+Separation of max-time inequalities
+We separate max-time y-constraints (21), corresponding to a single vehicle k, and max-time
+x-constraints (22), corresponding to the set of all the vehicles with procedures similar to those
+presented in [8].
+Brieﬂy, inequalities (21) are separated as follows. Given an LP solution, for each vehicle
+k, k = 1, . . . , K, let {a1, a2, . . . , aq} be an ordered set of required and optional arcs such that
+yk
+aj > 0.9 and yk
+a1 ≥yk
+a2 ≥. . . , ≥yk
+aq. Then, let F = {a1, a2, . . . , af}, where f is the maximal
+number such that ∑
+a∈F yk
+a > |F| −0.5. Iteratively, for each required or optional arc a with
+0.5 < yk
+a < 0.9, we consider the set F = F ∪{a}. Then the minimum number of vehicles
+needed to service the arcs in F is computed by solving the associated DGRP. If this number
+is greater than one, we have a violated max-time y-constraint. We also check the inequality
+(22) corresponding to the set S′ of vertices incident with the arcs in F for violation.
+The heuristic separation procedure for max-time x-constraints (22) starts by selecting a
+vertex at random (in such a way that each vertex has a probability of being chosen which is
+proportional to its distance to the depot). Then a sequence of vertex subsets is created by
+adding a new vertex iteratively in such a way that ∑K
+k=1 xk(δ(S)) is minimum for the resulting
+subset S. For each subset generated, we compute the minimum number of vehicles needed to
+service all the required and optional arcs incident with vertices in S and the corresponding
+inequality is checked for violation.
+Since computing the minimum number of vehicles needed to service a given set of arcs
+involves solving a DGRP exactly, we manage two lists containing the studied sets as in [8] in
+order to minimize the number of DGRP solved.
+5.4
+The cutting-plane algorithm
+At each iteration of the cutting plane algorithm the separation procedures are used in the
+following speciﬁc order and the violated inequalities found are added to the LP relaxation:
+1. Heuristic separation algorithm for connectivity inequalities (2) for each vehicle k.
+2. Exact connectivity separation for those vehicles for which the corresponding heuristic
+has failed.
+3. Heuristic algorithms for separating disaggregate and Ω-aggregate K-C and 2-PB in-
+equalities.
+4. If no violated inequalities have been found so far, heuristic separation of max-time y-
+constraints.
+5. If no violated inequalities have been found so far, heuristic separation of max-time x-
+constraints.
+As far as the separation of Ω-aggregate K-C and 2-PB inequalities is concerned, we do
+not know which is the best way to choose the set of vehicles to be aggregated. Given that
+applying the separation procedures for Ω-aggregate inequalities for each possible combination
+18
+
+of vehicles is computationally expensive, we proceed as follows.
+For any pair of vehicles
+{k1, k2}, we apply the separation procedures for Ω-aggregate K-C and 2-PB inequalities only
+when no violated disaggregate inequality of the same type has been found either for k1 or k2.
+Moreover, for any subset Ωwith 3 vehicles (if K ≥4), we apply the separation procedures
+for Ω-aggregate inequalities only when no violated disaggregate nor Ω-aggregate inequalities,
+with |Ω| = 2, associated with any of the 3 vehicles has been found. We proceed in a similar
+way for subsets of 4 vehicles (if K ≥5). Additionally, the separation of the Ω-aggregate
+inequalities is carried out only if the corresponding support graphs G
+k, k ∈Ω, are connected.
+Since the separation of max-time constraints is computationally expensive, it is only run
+when no other violated inequalities have been found.
+Furthermore, when this separation
+algorithm is executed for ten consecutive iterations in the same node, we proceed to branch.
+When this happens or no violated inequalities are found by any separation algorithm, we
+branch by using the Strong Branching strategy [1] implemented in Cplex, giving priority
+to the variables associated with servicing the required arcs, then to those corresponding to
+servicing the optional arcs, and ﬁnally to x variables.
+6
+Computational experiments
+We present here the computational results obtained on a large set of instances based on well-
+known ones from the literature. The branch-and-cut procedure has been coded in C/C++
+using the Cplex 12.4 MIP Solver with Concert Technology 2.9 on a single thread of an Intel
+Core i7 at 3.4GHz with 16GB RAM. Cplex heuristic algorithms and cut generation were
+turned oﬀ. The optimality gap tolerance was set to zero, and strong branching and the best
+bound strategies were selected. All the tests were run with a time limit of one hour.
+6.1
+Instances
+Since there are no instances of the TOARP in the literature, we have generated TOARP
+instances from undirected Rural Postman Problem (RPP) ones. Given an RPP instance,
+we proceed as follows.
+For each edge {i, j}, two arcs (i, j) and (j, i) with the same cost
+are generated. If the edge is non-required, both arcs are declared non-required too. If it is
+required, one direction is randomly selected and the corresponding arc is declared required
+(with probability p) or optional (with probability 1 −p), while the opposite one is declared
+non-required. The proﬁt associated with the traversal of an optional arc is deﬁned as its cost.
+The particular RPP instances we have used here are those proposed by Hertz et al. [16].
+In these instances, vertices are points in the Euclidean plane and edge costs are deﬁned by
+the Euclidean distances. The set of edges is deﬁned according to three diﬀerent methods.
+In the ﬁrst method (R class instances) the edges are generated randomly in the plane. The
+second method (G class instances) generates a set of edges with cost 1, deﬁning a uniform
+grid. The third method (D class instances) chooses edges deﬁning a graph where all the
+vertices have degree 4. From this set of instances, we have removed the smallest ones. From
+each one of these 69 RPP instances we have generated 9 TOARP instances corresponding to
+each combination of the values 0, 0.25, 0.5 and 2, 3, 4 for parameters p and K, respectively.
+The characteristics of the 69 TOARP instances for each value of parameter p can be seen in
+Table 1. Each row in this table shows the minimum and maximum number of vertices, arcs,
+required arcs, and optional arcs for each group of instances.
+The value of Tmax has been generated for each TOARP instance such that there is a
+feasible solution servicing all the required arcs, but the optimal solution does not service all
+19
+
+the optional arcs. The selection of these Tmax values is not trivial, since a large value would
+allow all the proﬁtable arcs to be serviced, making the problem similar to a DRPP with
+a diﬀerent objective function. On the other hand, a small value could make the problem
+infeasible, as some of the required arcs could not be serviced. To overcome this issue, in
+some cases it has been necessary to solve two instances of the Min-max K-vehicles DRPP
+with the algorithm proposed in [8]. Given a directed graph, a subset of required arcs, and a
+ﬁxed number of vehicles K, this problem consists of ﬁnding a set of K routes servicing all the
+required arcs such that the length of the longest route is minimal. Given a TOARP instance,
+two Min-max K-DRPP instances are deﬁned: one in which the required arcs are those in AR,
+and a second one in which they are those in AR ∪A′. Then the value for Tmax is chosen as a
+number between the costs of the optimal solutions of these two instances.
+p = 0
+p = 0.25
+p = 0.5
+Set
+# inst
+|V |
+|A|
+|AR|
+|A′|
+|AR|
+|A′|
+|AR|
+|A′|
+R30
+5
+11-18
+42-134
+0
+7-11
+1-3
+4-9
+3-6
+6-2
+R40
+5
+13-25
+68-266
+0
+8-18
+3-5
+3-15
+4-8
+1-11
+R50
+5
+19-27
+166-296
+0
+13-20
+0-7
+11-17
+4-11
+8-10
+D36
+9
+17-36
+96-270
+0
+10-38
+2-10
+6-30
+6-20
+4-23
+D64
+9
+37-62
+264-482
+0
+27-75
+4-21
+22-54
+11-38
+15-37
+D100
+9
+68-100
+544-846
+0
+50-121
+9-28
+37-95
+26-64
+20-70
+G36
+9
+18-35
+54-120
+0
+11-35
+1-11
+7-28
+6-18
+3-19
+G64
+9
+34-62
+128-228
+0
+24-68
+3-22
+20-50
+10-15
+12-38
+G100
+9
+60-100
+246-394
+0
+41-113
+8-25
+33-91
+19-57
+20-64
+Table 1: TOARP instance characteristics
+The set of 69×3 instances can be found in http://www.uv.es/corberan, as well as the
+optimal value, when known, or the best feasible solution known and the upper bound obtained
+at the root node for each instance and for each number of vehicles.
+6.2
+Computational results
+The average computational results obtained on this set of 207 instances for two, three and
+four vehicles are shown in Tables 2 to 4.
+Each one of these tables contains the results corresponding to a diﬀerent class of instances:
+R, D, and G. These results, grouped by instance size, have been arranged in matrices corre-
+sponding to the diﬀerent combinations of values for the number of vehicles K and parameter
+p. The ﬁrst row of each block shows the number of instances solved to optimality within the
+time limit of one hour. The second row gives the average percentage gap between the upper
+bound at the end of the root node and the optimal value (or the best known solution), while
+the ﬁnal gap is shown in the third row. The fourth and ﬁfth rows report the average time and
+number nodes, respectively, used by the branch-and-cut algorithm for the optimally solved
+instances.
+Overall, the results obtained are very good, especially when considering the great diﬃculty
+of this problem, in which the length of the routes is not included in the objective function,
+whose value is determined exclusively by the proﬁt from the optional arcs serviced.
+These results conﬁrm a fact common to the resolution of most multi-vehicle arc routing
+problems by branch-and-cut algorithms: the increasing diﬃculty of the problem with the
+20
+
+number of vehicles. Particularly, we have been capable of solving 204 out of 207 instances
+with K = 2 to optimality, 188 for K = 3, and only 157 for K = 4. Instances of class R are
+easier to solve, mainly because of their smaller size and, we think, the random structure of the
+graphs and the wide range of the costs of the arcs. If we examine the results corresponding
+to classes D and G, it can be seen that the case where p = 0 is clearly more diﬃcult than
+the others. The reason for this behavior is that when there are no required arcs, the vehicles
+have more options for constructing their routes and the solution set is larger. It is interesting
+to note that this behavior is opposite to the one we have experienced with the metaheuristic
+algorithm, as explained in [5].
+Finally, we would like to note that although some gap values at the root node may not
+seem very good, this is partly due to the fact that in some instances the proﬁt from (and the
+cost of) the arcs is quite large and the objective function only takes into account the proﬁt
+collected.
+p = 0
+p = 0.25
+p = 0.5
+R30
+R40
+R50
+R30
+R40
+R50
+R30
+R40
+R50
+# of opt
+5
+5
+5
+5
+5
+5
+5
+5
+5
+Gap 0
+6.2
+6.7
+9.5
+2.0
+10.2
+8.2
+0.0
+9.2
+130.3
+K=2
+Gap
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+Time
+1.0
+4.1
+14.4
+0.3
+1.3
+3.6
+0.3
+0.6
+1.9
+Nodes
+1.4
+19.0
+50.2
+0.0
+9.0
+16.8
+0.0
+1.6
+5.8
+# of opt
+5
+5
+5
+5
+5
+5
+5
+5
+5
+Gap 0
+0.9
+5.6
+7.4
+2.3
+6.8
+8.6
+5.3
+9.4
+37.1
+K=3
+Gap
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+Time
+0.3
+13.9
+18.9
+0.5
+9.1
+14.9
+0.5
+5.9
+3.0
+Nodes
+1.0
+41.0
+31.6
+0.8
+25.8
+31.6
+0.0
+15.4
+6.6
+# of opt
+5
+5
+5
+5
+5
+5
+5
+5
+5
+Gap 0
+0.0
+1.3
+5.6
+0.0
+2.0
+8.4
+0.0
+2.1
+1.7
+K=4
+Gap
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+Time
+0.2
+7.7
+6.3
+0.1
+5.1
+11.2
+0.2
+11.0
+0.5
+Nodes
+0.0
+22.0
+6.8
+0.0
+22.8
+29.8
+0.0
+27.0
+0.2
+Table 2: Computational results with R30, R40 and R50 sets of instances
+7
+Conclusions
+In this paper we have introduced the Team Orienteering Arc Routing Problem, which is the
+extension to the arc routing setting of the Team Orienteering Problem. For this problem
+we have presented an integer programming formulation and studied the associated polyhe-
+dron. From this polyhedral description we have devised and implemented a branch-and-cut
+algorithm producing very good computational results on a large set of benchmark instances.
+The TOARP has proven to be a very diﬃcult problem. Being a multi-vehicle problem
+with constraints limiting the length of the routes of the vehicles, it has the intrinsic diﬃculty
+of capacitated arc routing problems. Moreover, it presents an objective function that does
+not consider the route lengths, but only the proﬁt collected from potential customers, while
+21
+
+p = 0
+p = 0.25
+p = 0.5
+D36
+D64
+D100
+D36
+D64
+D100
+D36
+D64
+D100
+# of opt
+9
+9
+9
+9
+9
+9
+9
+9
+9
+Gap 0
+4.9
+2.7
+0.8
+5.1
+2.1
+0.9
+10.6
+2.8
+2.0
+K=2
+Gap
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+Time
+11.3
+37.4
+408.2
+5.7
+30.6
+152.4
+4.6
+32.7
+320.8
+Nodes
+34.1
+169.8
+438.9
+33.2
+192.4
+261.8
+21.4
+138.4
+407.9
+# of opt
+9
+9
+4
+9
+9
+5
+9
+9
+7
+Gap 0
+7.1
+8.1
+10.5
+4.2
+5.6
+9.3
+24.5
+11.4
+14.4
+K=3
+Gap
+0.0
+0.0
+2.2
+0.0
+0.0
+0.7
+0.0
+0.0
+0.7
+Time
+68.2
+382.6
+1349.9
+11.7
+231.2
+757.4
+13.5
+204.9
+820.8
+Nodes
+93.7
+763.3
+1074.0
+23.3
+365.7
+1336.6
+28.3
+461.0
+1137.2
+# of opt
+9
+5
+2
+9
+7
+4
+9
+7
+5
+Gap 0
+4.7
+6.7
+7.9
+5.6
+7.8
+7.8
+5.4
+10.3
+7.2
+K=4
+Gap
+0.0
+1.3
+4.6
+0.0
+0.6
+3.0
+0.0
+0.3
+3.4
+Time
+109.7
+479.7
+0.4
+24.1
+617.7
+563.9
+8.5
+534.5
+936.3
+Nodes
+75.1
+715.0
+392.2
+31.0
+1454.0
+821.3
+9.9
+1655.4
+589.6
+Table 3: Computational results with D36, D64 and D100 sets of instances
+p = 0
+p = 0.25
+p = 0.5
+G36
+G64
+G100
+G36
+G64
+G100
+G36
+G64
+G100
+# of opt
+9
+9
+8
+9
+9
+8
+9
+9
+8
+Gap 0
+7.3
+6.2
+4.1
+2.2
+1.4
+2.1
+7.2
+13.2
+1.5
+K=2
+Gap
+0.0
+0.0
+0.2
+0.0
+0.0
+0.3
+0.0
+0.0
+0.5
+Time
+4.8
+7.4
+48.1
+0.8
+1.5
+10.8
+1.1
+2.3
+8.4
+Nodes
+7.7
+6.7
+203.8
+1.3
+1.8
+283.7
+0.8
+1.8
+386.6
+# of opt
+9
+9
+5
+9
+9
+6
+9
+9
+8
+Gap 0
+6.3
+7.6
+5.5
+7.0
+11.1
+5.0
+9.6
+9.4
+6.4
+K=3
+Gap
+0.0
+0.0
+1.4
+0.0
+0.0
+0.9
+0.0
+0.0
+0.6
+Time
+87.9
+384.9
+950.0
+30.9
+72.8
+138.4
+13.2
+74.2
+800.0
+Nodes
+224.3
+287.7
+566.9
+40.9
+202.2
+204.2
+15.7
+144.7
+313.6
+# of opt
+8
+3
+1
+8
+9
+4
+7
+9
+6
+Gap 0
+4.4
+8.0
+10.2
+1.9
+8.5
+9.5
+2.0
+7.6
+12.1
+K=4
+Gap
+0.4
+4.7
+8.4
+0.5
+0.0
+5.0
+2.0
+0.0
+7.9
+Time
+118.0
+32.3
+0.3
+19.0
+164.1
+498.7
+0.3
+121.0
+439.7
+Nodes
+2310.1
+752.0
+585.8
+2124.9
+68.7
+438.6
+2726.3
+49.2
+109.9
+Table 4: Computational results with G36, G64 and G100 sets of instances
+22
+
+the time or length limit constraints consider all the arcs traversed by the vehicles. Despite
+this, we have been able to solve instances with up to 100 vertices, 800 arcs, and 4 vehicles.
+Acknowledgments: ´Angel Corber´an, Isaac Plana and Jos´e M. Sanchis wish to thank the
+Ministerio de Ciencia e Innovaci´on of Spain (project MTM2009-14039-C06-02) for its support.
+References
+[1] D. Applegate, R.E. Bixby, V. Chv´atal and W. Cook (1995), Finding Cuts in the TSP.
+Technical report, DIMACS 95–05.
+[2] J. Ar´aoz, E. Fern´andez and C. Franquesa (2009), The Clustered Price-collecting Arc-
+routing Problem. Transportation Science 43, 287-300.
+[3] J. Ar´aoz, E. Fern´andez and O. Meza (2009), Solving the Prize-collecting Rural Postman
+Problem. European Journal of Operational Research 196, 886-896.
+[4] J. Ar´aoz, E. Fern´andez and C. Zoltan (2006), Privatized Rural Postman Problems.
+Computers & Operations Research 33, 3432-3449.
+[5] C. Archetti,
+´A. Corber´an, I. Plana, J.M. Sanchis and M.G. Speranza (2012), A
+Matheuristic for the Team Orienteering Arc Routing Problem. In preparation.
+[6] C. Archetti, D. Feillet, A. Hertz and M.G. Speranza (2010), The Undirected Capacitated
+Arc Routing Problem with Proﬁts. Computers & Operations Research 37, 1860-1869.
+[7] E. Benavent, ´A. Corber´an, I. Plana and J.M. Sanchis (2009), Min-Max K-vehicles Windy
+Rural Postman Problem. Networks 54, 216-226.
+[8] E. Benavent, ´A. Corber´an, I. Plana and J.M. Sanchis (2011), New Facets and an En-
+hanced Branch-and-Cut for the Min-Max K-vehicles Windy Rural Postman Problem.
+Networks 58, 255-272.
+[9] ´A. Corber´an, E. Fern´andez, C. Franquesa and J.M. Sanchis (2011), The Windy Clustered
+Prize-collecting Problem. Transportation Science 45, 317-334.
+[10] ´A. Corber´an, I. Plana, A. Rodr´ıguez-Ch´ıa and J.M. Sanchis (2011), A Branch-and-Cut
+for the Maximum Beneﬁt Chinese Postman Problem. Mathematical Programming, DOI:
+10.1007/s10107-011-0507-6.
+[11] ´A. Corber´an, A. Romero and J.M. Sanchis (2003), The Mixed General Routing Polyhe-
+dron. Mathematical Programming 96, 103-137.
+[12] G. Cornu´ejols, J. Fonlupt and D. Naddef (1985), The Traveling Salesman on a Graph
+and some Related Integer Polyhedra. Mathematical Programming 33, 1-27.
+[13] D. Feillet, P. Dejax and M. Gendreau (2005a), Traveling Salesman Problems with Proﬁts.
+Transportation Science 39, 188-205.
+[14] D. Feillet, P. Dejax and M. Gendreau (2005b), The Proﬁtable Arc Tour Problem: Solu-
+tion with a Branch-and-Price Algorithm. Transportation Science 39, 539-552.
+23
+
+[15] G. Ghiani, D. Lagan´a, G. Laporte and R. Musmanno (2007), A Branch-and-Cut Algo-
+rithm for the Undirected Capacitated Arc Routing Problem. Les Cahiers du GERARD,
+Universit´e de Montr´eal, G-2007-39.
+[16] A. Hertz, G. Laporte and P. Nanchen-Hugo (1999), Improvement Procedures for the
+Undirected Rural Postman Problem. INFORMS Journal on Computing 1, 53-62.
+[17] A.N. Letchford (1997), New Inequalities for the General Routing Problem. European
+Journal of Operational Research 96, 317-322.
+[18] C. Malandraki and M.S. Daskin (1993), The Maximum Beneﬁt Chinese Postman Prob-
+lem and the Maximum Beneﬁt Traveling Salesman Problem. European Journal of Oper-
+ational Research 65, 218-234.
+[19] W. L. Pearn and W. C. Chiu (2005), Approximate Solutions for the Maximum Beneﬁt
+Chinese Postman Problem. International Journal of Systems Science 36, 815-822.
+[20] W.L. Pearn and K.H. Wang (2003), On the Maximum Beneﬁt Chinese Postman Problem.
+OMEGA 31, 269-273.
+[21] P. Vansteenwegen, W. Souﬀriau, D. Van Oudheusden (2011), The Orienteering Problem:
+A survey. European Journal of Operational Research 209, 1-10.
+24

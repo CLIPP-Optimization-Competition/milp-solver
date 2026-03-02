@@ -1,0 +1,1851 @@
+HAL Id: hal-05480829
+https://hal.science/hal-05480829v1
+Preprint submitted on 28 Jan 2026
+HAL is a multi-disciplinary open access
+archive for the deposit and dissemination of sci-
+entific research documents, whether they are pub-
+lished or not.
+The documents may come from
+teaching and research institutions in France or
+abroad, or from public or private research centers.
+L’archive ouverte pluridisciplinaire HAL, est
+destinée au dépôt et à la diffusion de documents
+scientifiques de niveau recherche, publiés ou non,
+émanant des établissements d’enseignement et de
+recherche français ou étrangers, des laboratoires
+publics ou privés.
+Distributed under a Creative Commons Attribution 4.0 International License
+Exploring Roadside Management Optimisation
+Opportunities: A Systematic Review on Arc Routing
+Problems Applications and Modelling
+Ignacio Castañeda-Rodríguez, Adriana-Simona Mihaita, Brunelle Marche,
+Mauricio Camargo
+To cite this version:
+Ignacio Castañeda-Rodríguez, Adriana-Simona Mihaita, Brunelle Marche, Mauricio Camargo. Ex-
+ploring Roadside Management Optimisation Opportunities: A Systematic Review on Arc Routing
+Problems Applications and Modelling. 2026. ￿hal-05480829￿
+
+Exploring Roadside Management Optimisation Opportunities: A Systematic
+Review on Arc Routing Problems Applications and Modelling
+Ignacio Castañeda-Rodrígueza,b, Adriana-Simona Mihăiţăb, Brunelle Marchea, Mauricio Camargoa
+aUniversité de Lorraine, ERPI, F-54000 Nancy, France
+bUniversity of Technology Sydney, 61 Broadway Str, Sydney, NSW 2007, Australia
+Abstract
+The gradual growth of road infrastructure worldwide has heightened the importance of sustainable roadside management
+for preserving adjacent ecosystems and maintaining critical ecosystem services. While the Arc Routing Problem (ARP)
+presents a promising framework for optimising operations carried out along an arc, its application to roadside management
+remains unexplored despite its advantages over traditional routing problems.
+This study presents a comprehensive systematic literature review to analyse how ARPs have been applied across various
+real-world scenarios and to identify relevant features for roadside management applications. The presented analysis is
+conducted in two stages. First, a bibliometric analysis introduces the context of the ARP scientific domain. Then, a deeper
+analysis is based on a detailed examination of model characteristics, network configurations, and sustainability challenges
+across different application domains.
+The findings reveal a predominance of theoretical work with few real-life applications but highlight significant opportu-
+nities for adapting existing ARP frameworks to roadside management, particularly in integrating sustainability criteria
+and local context considerations. However, crucial gaps in current ARP applications are identified, notably the limited
+incorporation of sustainable and regenerative practices in model formulation. This review provides a structured decision
+support framework for researchers and practitioners, outlining specific directions for developing ARP models tailored to
+sustainable roadside management while emphasising the need to balance operational efficiency with sustainable objectives.
+Keywords: routing problem, arc routing problem, roadside management, optimisation, systematic literature review
+Preprint submitted to Elsevier
+August 27, 2025
+
+1. Introduction
+The relationship between road infrastructure and economic development is widely studied, with an estimated 25 mil-
+lion kilometres of new roads projected to be built by 2050 [70]. However, this rapid expansion has a non-negligible impact
+on the surrounding territories, which can be controlled and mitigated by the vegetated strips of land adjacent to roads,
+known as roadside or road verges.
+Roadside management entails maintaining the vegetated areas next to roadways and enhancing security for road users,
+crucial for biodiversity and ecosystem services [96]. Practices include mowing, pruning, routine maintenance, and eco-
+logical enhancement to maintain habitat quality [84]. Therefore, operational challenges such as planning maintenance to
+minimise traffic disruption and efficiently allocate resources, are crucial [83]. Climate change further complicates these
+tasks, requiring adaptive strategies that accommodate increased storm intensity and shifting vegetation patterns [79].
+Managing maintenance tasks under a sustainable and regenerative approach can tackle these challenges by not only mit-
+igating social and environmental considerations, but also actively restoring and enhancing ecosystem services [97, 44].
+While sustainability focuses on minimising harm, a regenerative approach goes forward and aims to create net-positive
+outcomes, such as increasing biodiversity, improving soil quality and supporting socio-ecological development through
+roadside ecosystems [48].
+Despite these benefits, decision-makers face significant challenges in defining roadside maintenance strategies, planning
+operations, optimising routes, and allocating resources to minimise operating costs while coping with sustainable and re-
+generative objectives [12]. Therefore, transitioning to a regenerative model of roadside management requires long-term
+projects tailored to local contexts, integrating comprehensive strategies that address the complexities of road infrastructure
+while actively contributing to ecological resilience and community wellbeing [99, 44].
+These challenges in implementing sustainable and regenerative management have been emphasised in the roadside litera-
+ture, particularly by [96] and [44], who identify the development of models for roadside management scenarios as a crucial
+area for future research. They underscore the necessity of sustainable planning research that offers a holistic, long-term
+assessment of ecosystem services provided by roadsides, including their potential to regenerate natural capital and socio-
+ecological synergies.
+Addressing these future research needs, routing problems emerge as pivotal solutions for integrating operational planning
+with efficient logistical frameworks in roadside management. Among the most studied models is the Vehicle Routing
+Problem (VRP), which focuses on finding the most efficient routes for a fleet of vehicles to serve a set of customers located
+at specific nodes within a network [88]. On the other hand, the Arc Routing Problem (ARP) extends the principles of
+the VRP by focusing on servicing arcs and edges within a network [27]. By addressing the limitations of the VRP, the
+ARP provides decision-makers with a more suitable framework to optimise routing strategies in processes such as roadside
+management.
+Emphasising this topic, the comprehensive literature review carried out by [27] provides a thorough overview of general
+ARP, covering their historical development, theoretical aspects, and practical applications, highlighting key variants and
+emerging topics. According to the authors, the main challenges on this topic lie in the need for novel algorithms, hybrid
+approaches, and advanced metaheuristics to address the resolution of existing models more efficiently, as well as the de-
+velopment of new ARP variations that can be adapted to the emerging applications.
+Although the VRP has been the subject of more extensive study, the literature on ARPs has only recently begun to grow
+due to its usefulness in different applications in real-life problems. Nevertheless, further research is required to ascertain
+the applicability of ARPs in a range of emerging applications, including the growing focus on regenerative development
+[106]. In addition, to the best of our knowledge, a significant gap remains regarding the application of ARP models to
+roadside management. Despite its potential, there is currently no work that directly addresses roadside management chal-
+lenges through this approach, let alone by integrating sustainable and regenerative aspects in modelling techniques.
+Therefore, in order to guide future research in the design of ARP models for this critical application, it is now necessary to
+go deeper into how the proposed models have been developed for each specific application in the literature, which features
+have been considered for these purposes, and how they have been adapted to meet the unique requirements of each case.
+To tackle this issue, this work carries out a systematic literature review of the applications of the ARP, assessing the rela-
+tionships between the different real-life applications studied and relevant criteria identified in the literature, such as type of
+model, type of network and model features considered. Thus, this review aims to provide a decision support tool to guide
+future research to further develop the field of application of ARP for roadside management issues.
+This systematic literature review addresses the following research questions:
+1. How are studies of ARP applied to real problems developed in contrast to the ARP literature in general?
+2. Which fields of application have been studied, and how have variations on classical ARP allowed modelling to be
+adapted to each problem?
+3. How have sustainability aspects been included in the ARP literature applied to real-life problems?
+4. Which solution methods are used to tackle complexity in ARPs applied to real-life problems?
+5. What considerations should be explored to design an ARP model adapted for application in roadside management?
+2
+
+Slope
+Berm
+Road
+Roadside
+Ditch
+Safety
+space
+Figure 1: Road infrastructure illustration.
+This review article is organised as follows. For a better understanding of the contents covered in this paper, a theoretical
+framework on roadside management issues and routing problems is provided in Section 2. In Section 3, the details of
+the process for reviewing articles according to the Preferred Reporting Items for Systematic Reviews and Meta-Analyses
+(PRISMA) are presented. A descriptive analysis of the data found in the selected dataset is performed in Section 4.
+Then, a study and analysis of the evaluation criteria extracted from the literature is discussed in Section 5. In Section 6,
+the results of the previous analyses are summarised and assessed for determining the main needs for the application of
+roadside management in ARP models. Finally, conclusions and future directions for the designing of ARP models and
+their applications are further discussed as the results of this paper in Section 7.
+2. Theoretical framework
+In this section, a theoretical framework on the two main topics of this paper, roadside management and routing prob-
+lems, is provided in order to offer a better understanding of the concepts that will be discussed in the following sections.
+2.1. Roadside management
+Roadside management involves the systematic maintenance of vegetation strips along the edges of roads [58]. The
+organisation of this activity differs from country to country, but in general, an agency is responsible for the maintenance
+of an administrative division (region, department, etc.), depending on their territorial conditions and priorities [79]. Each
+agency has a limited budget to acquire resources such as personnel, vehicles, and specific machinery, which must be as-
+signed to work centres located within the territory to distribute the work.
+The planning of roadside maintenance depends on several territory variables (vegetation cutting height, maintenance pe-
+riod, maintenance frequency, maintenance width, maintenance differentiation, biomass collection) [32, 93, 79]. Based on
+these decisions, roadside worksites are planned in order to determine the optimal routes for current vehicles, which better
+comply with these sustainable objectives. Special consideration is given to the logistics of moving heavy machinery and
+equipment between different segments of the roadside efficiently and safely [95, 68].
+2.1.1. Road infrastructure
+The composition of roadsides varies according to the country where they are located, the surrounding landscape and
+the specific road they border [96]. The main composition of roadsides can be described by three main elements: the berm,
+the slope, and the ditch [79]. The berm’s main purpose is to guarantee road maintenance and user safety [136]. The slope
+forms a transition with the surrounding landscape [58]. In some cases, a ditch is also included between the berm and the
+slope, which collects and drains water from the road and adjacent areas, preventing flooding and ensuring smooth traffic
+flow [12]. Fig. 1 illustrates the composition of the road infrastructure described.
+3
+
+2.1.2. Main activities in roadside maintenance
+Maintenance of roadside areas includes a variety of activities devoted to maintaining herbaceous and woody vegeta-
+tion, each requiring specific machinery and techniques [95]. The specific tasks to be carried out depend on the type of
+management practised in each country. However, the most frequent activities in roadside management can be generalised
+as follows:
+The initial step in most roadside management operations is worksite safety, which ensures security during maintenance
+activities through proper signage and barriers to inform and protect road users and workers [80].
+Once security is granted, the operations in charge of maintaining the green areas are carried out. Mowing is one of the
+most common maintenance activities to be performed periodically. It allows the control of herbaceous vegetation height,
+which helps to maintain visibility and road safety [83, 112]. This activity utilises arm mowers or tractor-mounted mowers
+capable of handling different terrains and vegetation densities [79].
+In addition, pruning and tree trimming are vital for keeping roadside trees and shrubs in check, preventing branches from
+obstructing road signs and lights, and reducing the risk of falling limbs [66]. This requires machines similar to those used
+in mowing activities, while tree pruning requires lifting platforms and hand tools.
+Thirdly, biomass recovery and transportation are critical aspects of sustainable management, as they involve gathering
+plant material from mowing and pruning activities [32, 101]. Herbaceous and woody roadside biomass can be recovered
+and transported to recovery facilities [133, 33]. This activity requires additional equipment dedicated to collecting biomass
+into trailers and transporting it by truck [133, 78].
+In countries where the road infrastructure includes a ditch (See Fig. 1), ditch cleaning is essential for ensuring proper
+drainage and preventing water accumulation, which could lead to road damage or safety hazards [79, 58]. Excavators and
+specially equipped trucks are used to remove silt, debris, and vegetation, particularly critical before and after rainy seasons
+to maintain effective drainage [79].
+Overall, the roadside maintenance activities are very much related to the natural setup of each urban area that needs main-
+tenance and is highly dependent on current equipment that the local authority needs to use but also on staff availability,
+waste collection goals, etc.
+2.1.3. Sustainable and regenerative practices
+The literature identifies different maintenance strategies, but under a sustainable management approach, the main
+objectives are to reduce maintenance costs, time and emissions, improve water and soil quality, provide safety for vehicles
+and travellers, improve the overall driving experience, and provide habitat for wildlife populations [58].
+In addition, biomass management plays a crucial role in regenerative practices, but this decision can lead to both advantages
+and disadvantages. Waste extracted from roadside mowing (grass and wood) can be integrated into energy supply chains,
+as beneficial feedstock for use in biogas systems, anaerobic digestion, composting, or combustion, generating added value
+to these processes [82, 12]. However, this practice adds supplementary machinery investments and operational costs.
+Moreover, cutting too much can degrade soil quality and affect species in adjacent ecosystems [96]. Conversely, insufficient
+cutting on certain roads can reduce visibility, increasing the risk of accidents. Not collecting biomass, in turn, can enrich
+the soil, but in certain areas, this can promote the growth of invasive species. Therefore, it is essential to evaluate how
+much to cut and recover based on multiple scenarios that enable a sustainability assessment.
+2.2. Routing problem models
+A routing modelling problem suitable for roadside management needs to be done by integrating all these aspects,
+which can be challenging. A further deep dive into the routing modelling approach that can be employed is provided in
+the upcoming section.
+There are two primary types of routing problems commonly discussed in the literature: the VRP and the ARP. VRP focuses
+on optimising the routes of a fleet of vehicles dispatched from one or several depots to serve a set of customers represented
+by nodes [27]. It has been extensively studied and applied in contexts where the delivery locations are discrete points
+demanding services or goods, such as in urban delivery and service systems [124].
+In contrast, ARP deals with servicing requirements not at nodes, but along the arcs of a network [88]. This type of problem
+is particularly relevant in scenarios that involve routing a set of vehicles to cover specified arcs where each arc represents
+a task that needs to be performed, such as inspecting or maintaining the infrastructure. The challenge in ARP comes from
+the need to cover all required arcs as efficiently as possible, often while returning to the point of origin, making it crucial
+for applications that involve widespread geographical areas with specific service requirements along routes rather than at
+discrete locations [28]. Fig. 2 shows a basic representation of these two problems.
+2.2.1. Model variations
+There are several specific types of ARP that address different logistical challenges. The three main variations of the
+general ARP are described below.
+• The Chinese Postman Problem (CPP). Often considered the simplest form of ARP. It seeks a minimum-length closed
+path or circuit that visits every arc at least once [37].
+4
+
+Route 1
+Route 2
+Route 3
+Depot
+Depot
+Demand
+Demand
+Demand
+Demand
+Demand
+Demand
+Demand
+VRP
+ARP
+Demand
+Demand
+Demand
+Demand
+Figure 2: Representation of VRP and ARP networks.
+• The Rural Postman Problem (RPP). Similar to the CPP but more specific. It focuses on finding a minimum-length
+route that covers only a specified subset of arcs in a graph [13].
+• The Capacitated Arc Routing Problem (CARP). In this variation, each vehicle has a capacity constraint, which it
+cannot exceed when performing tasks like collecting waste or delivering goods [7].
+This wide range of variations of the original problem has allowed the creation of models better adapted to the needs of
+different real-life applications.
+2.3. Roadside Management modelling in Arc Routing Problems
+To the best of our knowledge, despite the several applications studied in the literature, there is still no work that has
+studied roadside mowing management by applying the ARP.
+The main difference between proper modelling of roadside management and ARP applications in the literature is the role
+of sustainable management, which mainly affects the objectives to be evaluated and the nature of the model’s demand.
+According to the description provided in Section 2.1, a multi-objective approach is required in order to assess different
+sustainable objectives, finding the most suitable biomass management plan. To achieve this, the decision variables will
+depend not only on the binary decision of whether to cut or not, but also on how much to cut in each segment, based on
+the evaluation of each objective function. Thus, the model’s demand can be defined as the amount of biomass required to
+cut, and it will vary according to the objective function. This feature has not been addressed in any other application in
+the ARP literature.
+Additionally, according to the same description provided before, an ARP model for roadside management might include
+the following features:
+• A directed graph in which the arcs representing roads include multiple sections according to the structure of the
+roadside, leading to a variable condition within the same arc.
+• Multiple depots representing the work centres, and their respective location decisions.
+• Strategic and operational decisions that optimise the limited budget for this activity, such as resource allocation,
+vehicle routing and workers’ scheduling.
+• A heterogeneous fleet of vehicles for each maintenance activity. These vehicles can vary in costs, operation time,
+and type of task.
+• A multi-period planning.
+Although each of these features has been studied in the literature, very few have modelled a problem including all of
+them. The lack of a model that includes all the characteristics described above (including the sustainable approach and the
+nature of the demand) motivates our current study and in-depth literature review.
+5
+
+3. Systematic literature review protocol
+In this section, the protocol followed for the systematic literature review proposed is explained step by step.
+The PRISMA method is the review approach applied to organise and analyse the literature for this article [94]. This
+method was chosen because it is well-structured and organised for reporting systematic reviews with clear objectives, and
+its checklist and flow diagram have proved useful for several studies in the past. Table 1 details the steps to be followed
+for the selection of articles. The scientific domain searched corresponds to scientific publications related to the design of
+ARP models for real case applications. Then, the selection process for reviewing the literature is illustrated in Figure 3.
+Stage
+Principle
+Description
+Search Strategy
+Type of studies
+Journals and conference papers
+Keywords
+Arc Routing Problem, real-life applications
+Search equation
+((“*Arc Routing*” OR “*ARP*” OR “*Postman Problem”)
+AND (“case study” OR “application” OR “real-life”))
+Period
+Not limited
+Databases
+Web of Science, Scopus and SpringerLink
+Study selection
+Criteria
+1. Articles related to the analysis or evaluation of ARP.
+2. Articles that model real case applications for the ARP.
+Procedure
+1. Title, abstract, and keywords are screened.
+2. Full article is reviewed.
+3. Selection is made based on selection criteria.
+Data extraction
+Application and model
+characteristics
+1. Real-life application
+2. Network approach
+3. Type of ARP model
+4. Vehicle features
+5. Time features
+6. Nature of demand
+7. Sustainability dimensions
+8. Solution approach
+Table 1: Systematic protocol for the literature review investigation.
+3.1. Data extraction
+The first step focuses on identifying relevant literature from online databases and several library resources, such as
+websites, organisation publications, and citation searching. The databases used in this stage were Web of Science, Scopus,
+and SpringerLink. Since this work aims to evaluate the changes in the literature through time, the publication date period
+was not limited. This way, it is possible to identify patterns of change in conjunction with the other characteristics evaluated.
+From this process, 411 documents were collected from several online databases, and 57 works were found from other
+resources (35 articles were found on websites, and 22 articles were found based on citation searching). In this step, the
+selected literature was primarily screened by removing duplicates, where 137 works were removed. At this point, these
+274 publications screened are analysed in order to provide a context for the scientific domain searched. Then, a first filter
+was made by screening of publication’s title, abstract, and keywords, where 142 articles were removed from databases
+and 33 from other resources because they were of a relevant low quality or out of the scope of this review article. After
+reducing the dataset obtained, a second filter was carried out by a full article reading, removing 55 publications. In this
+stage, since the focus is on the articles of application, the theoretical papers were removed, i.e., literature reviews, articles
+related to algorithm proposals, and models proposed without a particular field of application. Finally, the last step showed
+that the total number of literature works that were ensured to be included in this review article for an in-depth analysis was
+101.
+3.2. Evaluation criteria selection
+For each selected article in the final dataset, data extraction was carried out by identifying evaluation criteria found in
+the literature that were relevant to the design of an ARP model adapted for roadside management (described in Section 2.3).
+The selected criteria are defined as follows.
+1. Field of application for which the routing model is designed, including real-life application and type of operation
+(pick-up, delivery, other).
+2. Network approach on which the problem is modelled. This means the type of graph, number of depots, and type
+of decisions (strategic, tactical or operational).
+3. Type of model proposed - if it presents a variation of the original ARP model.
+4. Vehicles features considered. This means the number of vehicles used (if this number is fixed or unlimited), if they
+have capacity constraints, and if the fleet is uniform (consisting of identical vehicles) or heterogeneous (differences
+in capacity, utility, or technology).
+6
+
+Identification of studies via databases and registers
+Identification
+Screening
+Eliginility
+Records screened
+(n=274)
+Records identified (n = 411)
+from:
+Scopus (n=184)
+Web of Science (n=75)
+Springer (n=152)
+Records removed
+before screening:
+Duplicate records
+removed (n=137)
+Records removed for
+titles and abstracts:
+(n=142)
+Reports assessed for eligibility
+(n=132)
+Records removed for
+out of scope: 
+(n=55)
+Full Reports in the scope:
+Via databases (n=77)
+Via other methods (n=24)
+Total (n = 101)
+Identification of studies via other methods
+Records identified from:
+Websites(n=35)
+Citation Searching (n=22)
+Records screened:
+(n=57)
+Records removed for
+out of scope: 
+(n=33)
+Reports assessed for eligibility
+(n=24)
+Figure 3: Flow diagram for the systematic review based on the PRISMA approach.
+5. Time features according to the model needs, such as the planning period considered and time constraints in service
+time, working hours, traffic peak hours, among others.
+6. The Nature of the demand - how it is calculated and which factors can affect it. For example, uncertainty, variability,
+other model parameters, etc.
+7. Sustainability dimensions represented in the objective functions. To analyse these aspects, the approach provided
+by [11] has been followed. In this work, five dimensions have been proposed. In addition to the three traditional
+pillars: economic, environmental, and social, the political and technological dimensions are added for a complete
+multidimensional view.
+8. Solution approach for the model programming. These methods play an important role in the development of ARPs
+since one of the main challenges of the current literature is the high-resolution times of these complex problems.
+Among these methods are exact methods, heuristics, and metaheuristics.
+3.3. Results analysis process
+Given the structure of the systematic review protocol, the documents selected will be processed and analysed in two
+stages. Fig. 4 presents a scheme of the methodology.
+1. A bibliometric analysis is performed with the 274 records screened. This analysis has been used in research to
+handle large volumes of scientific data and to produce high research impact, in order to identify the emerging trends
+in a particular field [36]. In this stage, the distribution of articles through time, authors and keywords, is shown. In
+this way, the aim is to provide a broader perspective on the state of the art of ARP in general.
+2. A Modelling and applications analysis of the selected criteria described above, is carried out. In this stage, the
+101 selected papers are analysed and debated based on the chosen evaluation criteria. The objective is to identify
+how these criteria have been studied for the design of application models in this field and how this can be further
+applied to our current roadside management problem.
+4. Bibliometric Analysis
+To contextualise the state of the literature on ARPs, a descriptive analysis of the 274 articles screened in this research
+is carried out in this section.
+7
+
+ARP applied to real-life problems
+Section 5:
+Modelling and Applications Analysis
+Section 4:
+Bibliometric Analysis
+• Urban maintenance
+• Winter gritting services
+• Meter reading
+• Track maintenance
+• Civil and disaster operations
+• Others
+1. Real-life applications
+2. Modelling approach
+• Capacitated Arc Routing Problem (CARP)
+• Rural Postman Problem (RPP)
+• Chinese Postman Problem (CPP)
+3. Network approach
+• Type of graph: Directed, Undirected, Mixed
+• Location/Allocation decisions
+• Number of depots: Single, Multiple
+4. Vehicle features
+• Number of vehicles: Fixed or Unlimited
+• Type: Homogeneous, Heterogeneous
+• Capacity constraints
+5. Time features
+• Planning period: Single, Multiple
+• Time windows
+6. Nature of demand
+• Deterministic or stochastic
+• Variable or static
+• Other
+7. Sustainability dimensions
+• Economic
+• Environmental
+• Social
+• Political
+• Technological
+8. Solution approach
+• Exact
+• Heuristics
+• Metaheuristics
+• Matheuristics
+ARP Literature context
+•
+Historical distribution
+•
+Author’s analysis
+•
+Sources’ analysis
+Figure 4: Scheme of the analysis methodology.
+4.1. Growth of driving data research
+Fig. 5 shows the historical distribution of publications on ARP approaches from 1978 to 2025, with a total of 274
+articles. According to the literature found, there is a relatively stagnant trend in research output up to the early 2000s, with
+fewer than 5 publications annually. A gradual increase in publications began around 2005, with more significant growth
+observed from 2010 onwards. Notably, there is a sharp increase after 2015, reaching a peak between 2020 and 2023, where
+the number of publications surges to nearly 25 in a single year. This spike is a five-fold increase in the research activity
+compared to two decades earlier, highlighting a burgeoning interest and significant advancements in ARP models. This
+trend analysis indicates a maturing research area with fluctuating but overall increasing attention, emphasising the periods
+of rapid growth and potential saturation or shifts in research focus in recent years. This summary encapsulates the critical
+trends and numerical highlights needed for contextualising the ARP literature in a scientific article.
+4.2. Most relevant authors and sources
+Fig. 6 illustrates the most relevant authors selected in the domain of ARPs and their annual output for the period
+2003–2024. The bubble sizes denote the number of annual publications, and the colour intensity is proportional to the
+total citations per year. For example, MEI Y’s name appeared in multiple papers over the period [131], showing consistency
+in research output. Specifically, MEI Y published three papers in 2010 and 2011 with high citation counts, reflected by
+darker bubble colours indicating 15 to 20 total citations in those years.
+MEI Y, YAO X, and ZHANG M [134] seem to be the top three authors in terms of the total number of articles published,
+while MEI Y is the most prolific in recent years, since 2019. The group of CORBERÁN, SANCHIS J, and PLANA I
+[27] shows consistent research activity throughout this period, with a notable impact in 2021, where publications reached
+maximum citation counts. In terms of the total number of citations, the top five are recorded by CORBERÁN, SANCHIS
+J, PLANA I (mainly due to their last work), MEI Y and ZHANG M.
+The literature dataset is distributed across a total of 145 distinct publication sources. Fig. 7 illustrates the cumulative
+number of articles from the top five sources. The Computers and Operations Research is the most prolific source in
+the literature, demonstrating a consistent publication trend, with contributions from 2001 to 2016, resuming in 2020 and
+increasing significantly in 2024, accumulating a total of 23 articles. European Journal of Operational Research holds the
+second position, beginning to publish relevant papers in 2004, with significant growth from 2013 onwards, reaching a total
+of 20 publications by 2024 in this field. The Networks journal is notable for its consistency over time, contributing 16
+documents to the dataset. This is followed by the journal of IEEE Transactions on Evolutionary Computation and Lecture
+Notes in Computer Science (including subseries in Artificial Intelligence and Bioinformatics), with 8 and 7 publications
+respectively.
+8
+
+0
+5
+10
+15
+20
+25
+30
+1975
+1980
+1985
+1990
+1995
+2000
+2005
+2010
+2015
+2020
+2025
+Number of publications
+Year
+Figure 5: Historical distribution of selected documents.
+Figure 6: Authors with the highest impact in the scientific domain, based on the number of publications and the total citation count.
+5. Modelling and Applications Analysis
+The following section presents a detailed analysis of modelling practices and applications in the literature on real-life
+applications for ARP models. After applying the filters described in the systematic review protocol, the articles were
+analysed considering different relevant aspects evaluated by the selection criteria discussed in Section 3. The following
+subsections present the obtained results.
+5.1. Real-life applications
+Table 2 provides an overview of the analysed documents, categorised according to the real-life application that has
+been modelled. For this purpose, each application field encompasses a range of case studies grouped by similar activities.
+9
+
+0
+3
+6
+9
+12
+15
+18
+21
+24
+1978
+1981
+1991
+1994
+1995
+1996
+2001
+2002
+2003
+2004
+2005
+2006
+2007
+2008
+2009
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+2017
+2018
+2019
+2020
+2021
+2022
+2023
+2024
+2025
+Number of publications
+Year
+COMPUTERS AND OPERATIONS RESEARCH
+EUROPEAN JOURNAL OF OPERATIONAL RESEARCH
+IEEE TRANSACTIONS ON EVOLUTIONARY COMPUTATION
+LECTURE NOTES IN COMPUTER SCIENCE (INCLUDING SUBSERIES LECTURE NOTES IN ARTIFICIAL INTELLIGENCE AND LECTURE NOTES IN BIOINFORMATICS)
+NETWORKS
+Figure 7: Cumulative growth of scientific literature sources.
+These case studies detail the specific activities that each author has addressed in their publications. At the same time, these
+articles have been organised by the type of graph considered, allowing for an analysis of different perspectives on how to
+express mathematically each application.
+5.1.1. Urban Maintenance
+Urban maintenance encompasses several case studies where ARP models are crucial, including road maintenance,
+street sweeping, truck water sprinkling, and municipal waste collection. While road maintenance applications have been
+explored using various graph types to reflect different operational strategies, waste collection stands out as the most studied
+application.
+Municipal waste collection has been the most studied application among all fields, being the focus of 26% of the publica-
+tions. This problem is well suited to ARP models because the task is to collect waste within an urban area, composed of
+streets with multiple collection points, usually represented by households so that the total demand in each arc of the net-
+work is represented by the total waste in each street. This problem has been addressed with directed, undirected, and mixed
+graphs so far. The prevalence of directed graphs in this field can be attributed to the need for managing one-way streets
+and designated routes that optimise the collection process and reduce operational times. These studies often highlight
+how different graph orientations can help manage the complexity of urban logistics by aligning with specific municipal
+regulations and traffic patterns.
+Some problems even consider the routing to disposal sites at the end of the route [119, 127, 100]. Furthermore, some
+works consider the sorting of different types of waste for proper recycling [132, 50]. In addition to this, the study carried
+out by [86] assesses the effect of implementing electric vehicles for routing. The work presented in [104] models different
+situations in waste collection activity, such as a heterogeneous fleet of vehicles, and limitations in the number of visits for
+waste disposal.
+5.1.2. Winter Gritting Services
+Winter gritting services are the second most studied application, representing 17% of the results. In this field, case
+studies focus on salt spreading and snow ploughing, typically employing directed graphs to ensure effective coverage and
+resource allocation. These activities are critical in maintaining road safety and require precise routing to effectively manage
+the challenges posed by winter weather conditions. Although the purpose of both tasks is the same, the main difference
+in terms of modelling is that snow ploughing is a pickup activity in which each side of a road must be treated separately,
+while salt spreading is considered a delivery activity in which salt can be spread on both sides in a single run. The use
+of directed graphs helps in establishing routes that maximise coverage while adhering to environmental and public safety
+standards.
+In this field of application is common to identify the use of different types of vehicles. These types of vehicles may differ
+just in capacity loads [63], or other features like the available fleet, maximum speed and costs [74, 8]. The authors in [45]
+also studied the use of different trucks for the removal of snow from the driving lanes and the sidewalks.
+10
+
+Field of application
+Case study
+Directed
+Undirected
+Mixed
+Urban
+maintenance
+Road maintenance
+[4], [19]
+[118], [52]
+[111], [13]
+Street sweeping
+[110], [54],
+[64], [39],
+[16], [65]
+Truck water sprinkle
+[76], [53],
+[135]
+[76]
+Waste collection
+[127], [123],
+[10], [129],
+[56], [100],
+[92], [109],
+[119], [86],
+[87], [49]
+[57], [7],
+[131], [129],
+[50], [132],
+[34], [62],
+[104]
+[128], [72]
+[90], [56],
+[31], [43],
+[81], [17]
+Winter Gritting
+Salt spreading
+[47]
+[91], [85]
+[63], [1], [75]
+Services
+Snow ploughing
+[73], [45],
+[116], [108],
+[42], [8]
+[55], [51]
+[74]
+Meter reading
+Automated
+[14], [102]
+Conventional
+[29], [60],
+[122]
+[46]
+Track maintenance
+Metro network
+[22], [21],
+[23]
+Railway network
+[69]
+[114], [113]
+Civil and disaster
+Civil Operations
+[105], [3]
+operations
+Debris collection
+[98]
+[121], [107]
+Security patrolling
+[35], [18]
+Rescue with Drones
+[134]
+[134], [2],
+[115]
+Traffic monitoring
+wtih drones
+[71], [126],
+[77], [130]
+[126], [89],
+[25]
+[6]
+Other
+Delivery of goods
+[5]
+Agricultural path planning
+[61]
+[125]
+Mine dust suppresion
+[103]
+Bus tour planning
+[9]
+Hiking tourism planning
+[120]
+Bank treasury locate
+[59]
+Battery replacement
+[117]
+[117]
+Table 2: Publications sorted by field of application, case study, and type of graph considered.
+In this field of application, it is also common to find the use of Location Arc Routing Problem (LARP) models, sometimes
+including multiple depots, which include facility location decisions for the designed network. For salt spreading, these
+decisions are used to locate salt depots in addition to the central depot from which the vehicles depart [55, 91, 85].
+5.1.3. Meter Reading
+Meter reading has benefited from ARP models mainly through Close-Enough Arc Routing Problem (CEARP), a varia-
+tion of RPP (see Section 5.2). The use of directed graphs predominates in these studies to minimise travel time and ensure
+that every meter is visited without redundant paths, enhancing efficiency and reducing operational costs.
+As the reading of water and electricity meters is an activity that has become less important due to technological develop-
+ment, some more recent work has studied the case for automated systems for meter reading [14, 102].
+5.1.4. Track Maintenance
+In the field of track maintenance, particularly within metro and railway networks, directed graphs are utilised to sched-
+ule maintenance tasks effectively. These tasks must be strategically planned to minimise disruptions in daily transit oper-
+ations, and directed nature of the graphs helps in sequencing these activities along the tracks. The work of [114] describes
+the goal of this task as to find an optimal time schedule for the maintenance activities and optimal routes for the mainte-
+nance crew, including all necessary equipment and technicians.
+One frequent feature in these studies is the inclusion of time constraints, presented in 65% of the works. Among these
+works, the main reason for implementing these constraints is to avoid affecting urban passenger transport in the daytime,
+so the vehicles can only run during nightly time windows. For this purpose, the studies in [21] and [23] also integrate the
+use of location decisions for intermediate facilities where the vehicles and staff can rest until the next time window is open.
+11
+
+5.1.5. Civil and disaster operations
+This field has also been studied in depth, including diverse operations such as debris collection, security patrolling,
+and drone rescue missions. The directed graphs are especially beneficial in scenarios like disaster response, where routes
+must be optimised quickly for debris clearance or emergency services to reach affected areas promptly [98, 107, 121].
+These applications normally start with an unconnected graph, where vehicles must unblock the damaged roads, allowing
+the network to be connected once served, providing quick and efficient routing solutions that are vital for effective disaster
+management.
+In recent years, these works also highlight the use of drones in activities such as traffic control [126, 77, 6], security
+patrolling [89, 25], and humanitarian rescue [134, 2]. The authors in [115] design a model for transportation reconnaissance
+that proposes temporal and spatial synchronisation in the routing of vehicle and drones. For these purposes, the use of
+indirect and mixed graphs has been more widely used because they are better adapted to the movements of these aerial
+vehicles, which normally have no restrictions on the direction of their arcs.
+5.1.6. Other applications found
+This field includes various other types of applications that could not be classified in other fields.
+The authors in [103] study the case of the suppression of mine dust through water sprinkler trucks using an undirected
+graph. [117] proposed a CARP for the replacement of batteries in an e-bike sharing system, where workers replace batteries
+for underpowered e-bikes along street segments. The work [9] designs a routing planning model for public transportation,
+where a single bus picks up AND drops off passengers at multiple stops. [59] proposes a LARP with time windows under
+demand uncertainty and a heterogeneous fleet to address the problem of the location of treasury centres required for the
+exchange of money from a bank’s branches. The authors in [5] design a competitive transportation-LARP for the delivery
+of goods with a leader and a follower. The works of [61] and [125] study the case of field path planning for agricultural
+operations under a CARP approach. The article of [120] develops a sustainable approach under the evaluation of economic,
+environmental and social objectives for the planning of optimal hiking routes in tourism.
+5.2. ARP modelling approaches
+The analysed articles can also be sorted according to the model approach studied, starting from the three base variations
+mentioned in Section 2.2.1: CARP, RPP, and CPP. Then, these variations have been sub-categorised into other variations
+found in the literature. Lastly, specific models with different names and descriptions have also been proposed. The papers
+grouped as “Others” correspond to those that cannot be classified in any other category because the authors focus on
+describing other aspects of their models and not those analysed in this paper. Table 3 summarises the results for this
+subsection.
+The CARP model is the most widely used, present in 72.3% of the total results. This is mainly because having capacity
+constraints on vehicles allows it to better model a wide range of real-life applications. Although a high percentage of these
+models do not propose variations (35.6% of CARP models), three sub-categories have been identified in this group:
+A) LARP, which integrates facility location decisions such as additional depots in the network configuration,
+B) MCARP, which integrates the use of mixed graphs, and
+C) PCARP, which uses a multi-period time horizon.
+Additionally, a considerable number of articles were considered within the “Others” sub-category, as the descrip-
+tion of these models deals with specific aspects of their models or the case study addressed, such as the use of drones
+[6, 134, 77, 130], particular characteristics for vehicles such as multi-compartment [132, 87] and heterogeneous fleet [74],
+or the use of intermediate facilities [87, 127, 110, 43].
+The RPP has been the second most studied model, representing 11.8% of the studies. The only sub-category found is the
+CEARP, which accounts for half of the studies on this variant. This model applies to scenarios where the vehicle doesn’t
+need to arrive precisely at the customer’s location to deliver its service. Instead, the service can be carried out from a cer-
+tain distance, requiring the vehicle to merely pass “close enough” to the customer’s position [27]. As with CARP models,
+the “Others” sub-category in RPP presents quite specific model propositions that could not be classified into other groups.
+For example, they present periodic models [13, 23], inclusion of intermediate facilities [23], and other specifications for
+each case study.
+The CPP has only been identified in four articles. While the works in [39] and [16] respond to street sweeping applications
+employing a traditional CPP, the work of [111] proposes a hierarchical CPP, described by the authors as the problem to
+find the shortest tour that shall pass each arc at least once via considering the precedence relations in a hierarchical graph
+where the arcs are classified according to these precedence relations.
+The “Others” category corresponds to articles that do not correspond to any of the three mentioned variations. The Gener-
+alised Routing Problem (GRP) developed in [107] combines arc routing and node routing on the same graph. Some other
+studies are based on the application of Arc Orienteering Problem (AOP) [120, 126]. The majority of other studies name
+their model according to its application, generalising the model’s characteristics in this context (see e.g., [120, 40, 41]).
+Finally, it is important to note the large number of results classified as “Others”. This is because there is no convention in
+the literature for naming the designed ARP models, so there may be models that, although having similar characteristics
+and purposes, are named differently by the authors, making them difficult to classify. A notable example of this is the
+article that describes the use of drones [6, 134, 77, 130].
+12
+
+ARP Variation
+Sub-category
+Model proposed
+Author’s model name
+References
+CARP
+[109], [73], [45],
+[71], [61], [117],
+[114], [100], [75]
+[63], [98], [4]
+[92], [103], [62]
+[135], [72], [104],
+[123], [118], [121]
+[47], [116], [49],
+[7], [113]
+LARP
+Location ARP
+[59], [50], [55],
+[91], [85]
+CoTLARP
+Competitive Transportation-LARP
+[5]
+DLARP
+Dynamic LARP
+[86]
+MCARP
+Mixed Capacitated Arc Routing Problem (MCARP)
+[56], [90], [81]
+MCARPTC
+MCARP with turns constraint
+[10]
+MCARPTIF
+MCARP under Time Restrictions with Intermediate Facilities
+[128], [129]
+MCGRP
+Mixed Capacitated General Routing Problem
+[1]
+PCARP
+Periodic Capacitated Arc Routing Problem (PCARP)
+[119], [131]
+PARPRP
+PCARP with Refill Points
+[53]
+TGCRP-PD
+Track Geometry Car Routing Problem with Periodic Demands
+[22]
+MDCARP
+Multiple-Depot Capacitated Arc Routing Problem (MDCARP)
+[17], [65]
+MDHCARP
+Multi-Depot Heterogeneous Fleet CARP
+[74]
+MDARPFED
+Multi-Depot ARP with Flexible Assignment of End Depot
+[64]
+Others
+AMMDRPG
+All Terrain Mothership and Multiple-Drone Routing Problem with Graphs
+[6]
+RTOARPM
+Robust Drone ARP
+[134]
+DL-ARP
+Double Layer-ARP
+[77]
+GVD-ARP
+GV-Drone-ARP
+[130], [25]
+DARP
+Dissimilar ARP
+[26]
+DARP-DD
+Drone ARP with Deadheading Demand
+[2]
+OCARP
+Open CARP
+[60], [122]
+RARP
+Rich ARP
+[76], [21], [69]
+SARP
+Sectoring ARP
+[31]
+ARPTPC
+ARP Time Penalty Costs
+[57]
+CARP-VSD
+CARP with Vehicle/Site Dependencies
+[110], [43]
+CSMC-CARP
+Commodity-Split Multi-Compartment CARP
+[132]
+MCCARPIF
+Multi-Compartment CARP with Intermediate Facilities
+[87]
+MLCARPIF
+Multi-Level CARP with Intermediate Facilities
+[127]
+SyARP
+Synchronised ARP
+[108]
+CARPMD
+CARP with Mobile Depots
+[34]
+CARP-SSTT
+CARP with Stochastic Service and Travel Times
+[20]
+MTCARPTW
+Multi-Treatment CARP with Time Windows
+[52]
+SD-CARP
+Split Delivery CARP
+[52]
+RPP
+[3], [51]
+CEARP
+[46]
+DC-CEARP
+Distance-Constrained CEARP
+[29], [30]
+MM-CEARP
+Min-Max CEARP
+[14]
+PCEARP
+Profitable CEARP
+[102]
+Others
+PRPP-IS
+Periodic RPP with Irregular Services
+[13]
+MO-PGDRPPLRIF
+Multi-Objective Periodic Generalized Directed RPP
+under Length Restrictions with Intermediate Facilities
+[23]
+TVARP
+Target Visitation ARP
+[105]
+CBT
+City Bus Tour
+[9]
+MMMDRPP
+Min-Max Multiple-Depot RPP
+[18]
+CPP
+[38], [39], [16]
+HCPP
+Hierarchical CPP
+[111]
+Others
+GRP
+Generalised Routing Problem
+[107]
+HTP
+Hiking Tourist Problem
+[120]
+TOARP-TP
+Team Orienteering ARP with Time-varying Profits
+[126]
+TDMVD-TOARP
+Time-Dependent Multi-Visit Dynamic Team Orienteering ARP
+[42]
+VDCRP-PR
+Vehicle and Drone Routing Problem integrated with Point & Arc Routing
+and Temporal & Spatial Constraints
+[115]
+BOARP
+Bi-Objective ARP
+[35]
+eARP
+Electric ARP
+[40]
+PERP
+Parking Enforcement Routing Problem
+[41]
+ARP-SST
+ARP with Stochastic Service Times
+[19]
+No name given
+[15], [8], [89]
+Table 3: Publications sorted by model approaches.
+13
+
+74
+12
+15
+80
+23
+21
+78
+79
+14
+78
+22
+73
+23
+14
+79
+22
+0
+20
+40
+60
+80
+100
+Network
+decisions
+Number of
+depots
+Number of
+vehicles
+Capacity
+constraints
+Fleet
+homogeneity
+Planning
+periods
+Time windows
+Routing only
+Location
+Allocation
+Yes
+No
+Single
+Multiple
+Unlimited
+Homogeneous
+Heterogeneous
+Figure 8: Distribution of publications according to different model features.
+5.3. Model features
+Figure 8 shows the distribution of publications according to different characteristics of the model. In this case, these
+can be separated into network, vehicle, and time features.
+5.3.1. Network features
+An important feature that characterises the network in modelling is the type of decisions made within it. In this regard,
+the literature has focused mainly on operational decisions related to vehicle routing, corresponding to 74 articles in this
+survey. However, it is also possible to identify studies that have included location and allocation decisions.
+Location decisions correspond to the strategic level and represent the selection of sites to implement potential facilities,
+such as depots. These decisions are examined in 12 publications, which take into account the LARP models (7) [55, 50,
+85, 86], some multi-depot models (2) [75, 74], and CARPs incorporating the use of intermediate facilities (3) [127, 21, 24].
+On the other hand, allocation decisions are tactical decisions which describe the assignment of resources for the facilities,
+such as vehicles, specialised machinery, or personnel (drivers and assistants), or the assignment of tasks, such as arcs to
+be served. The results of the survey show that 15 articles have considered allocation decisions, which include only the
+assignment of vehicles (8) [119, 52, 86] and tasks (7) [51, 3, 85], represented by arcs that need to be served. The works in
+[5] and [59] include them both simultaneously. The authors in [132] also include the assignment of fractions of waste for
+an optimal distribution in multi-compartment vehicles.
+A second important feature that defines the network is the number of depots considered in the activity. When considering
+multiple depots, these can already be fixed or can be part of a location decision. This survey has identified 22 multi-depot
+models. Among these studies, the work in [65] highlights the design of a model in which the starting depot for vehicles is
+not necessarily the end depot, providing a more flexible assignment. The authors in [17] developed a memetic algorithm to
+solve a multi-objective, multi-depot problem for the case of waste collection. In [86], a model adapted for electric vehicles
+is proposed, considering both depots and plug-in and wireless charging stations.
+5.3.2. Vehicle features
+Among the different characteristics presented in the vehicles in the ARP problems, those that have been considered
+the most relevant for the modelling have been identified. Since most of the articles selected for this review are CARPs or
+variations of this model, the vast majority of the vehicles have capacity constraints, being present in 80% of the results.
+This capacity has been modelled for vehicles as the maximum supported load, and for electronic devices such as electric
+vehicles with charging stations [86, 40] and drones as the maximum battery capacity [115, 2].
+Regarding the number of vehicles in the model, two general cases have been identified. Models with a single vehicle and
+models with multiple vehicles. Works with single vehicles can be found in applications such as meter reading [46, 29, 102],
+patrolling [105, 126] and rail track maintenance [23]. On the other hand, work using multiple vehicles can be categorised
+as limited, if there is a fixed maximum fleet present in the model parameters [114, 71, 10, 116], or unlimited if there is no
+fixed number and it is the model that decides the optimal number of vehicles to use [132, 55, 1, 130].
+14
+
+45
+23
+22
+6
+2
+2
+3
+1
+2
+1
+4
+2
+5
+3
+1
+0%
+20%
+40%
+60%
+80%
+100%
+Economic
+Environmental
+Social
+Political
+Technological
+Min Costs
+Min Time
+Min Distance
+Max Profit
+Min GHG Emissions
+Min CO2 Emissions
+Min Service time
+Max Job Opportunities
+Max Security
+Max Travel attractiveness
+Min Working days
+Min Penalty costs
+Min Fleet size
+Max Vehicle distribution
+Min Energy Consumption
+96
+5
+11
+2
+8
+Figure 9: Distribution of publications according to sustainability dimensions considered.
+With respect to homogeneity, most of them consider an identical fleet of vehicles. While only 22% of studies evaluate
+heterogeneous vehicles represented by differences in capacities [127, 63], speed [8], compartment structure [132], and
+task compatibility [74, 121, 104].
+5.3.3. Time features
+Different time features have been considered in the literature in order to model the desired field of application better.
+One of them is the planning distribution, which can be computed over a single period or multiple periods. A single-period
+planning supposes that all the required arcs are served during the same period. This has been the most common modelling
+in the literature, used in 78 of the articles reviewed. On the other hand, in multi-period planning, one has to decide which
+arcs are served initially and which ones are postponed to the next periods [67]. The results show that only 23 publications
+have used this approach, see e.g., [59, 42, 41, 26, 119, 105].
+Time windows have also been identified as key constraints to model real-life scenarios in some operations. While most
+of them are represented as either working hours [71, 47, 128, 129, 92], or time constraints in which the service must be
+guaranteed [57, 13, 43, 21], there are also particular time constraints. The work of [59] includes time constraints to reduce
+the risk of transporting money. Moreover, the authors in [76] represent time constraints as peak hours across a day in a
+track maintenance application. The work carried out in [115] establishes reconnaissance time windows for spatial and
+temporal coordination of drones and vehicles.
+5.4. Nature of demand
+Uncertainty has not been extensively considered in the analysed articles, since more than 86% of the results consider
+studies under a deterministic view, i.e., the parameters are known with certainty. From the results, only 14 articles consider
+uncertainty in their parameters, representing 13.9% of the total.
+The stochastic models mostly consider the arc demand as an uncertain parameter, measured by a probabilistic distribution
+[1, 71]. Some of these papers employ robust optimisation for uncertainty modelling [1, 59]. In a similar way, fuzzy models
+also mostly model uncertainty through demand, but this time using the membership function of a triangular fuzzy number
+[7, 50].
+According to the variability of the demand, some authors also modelled it as a dynamic parameter [117, 126, 42, 98].
+Conversely, the work in [42] defines a demand of snow that needs to be removed from arcs and changes each period based
+on two parameters, the intensity of the snowfall and a fixed threshold of snow that needs to be met.
+5.5. Sustainable objectives
+Figure 9 represents the distribution of the reviewed publications according to the sustainability dimensions considered
+in their model objective functions. The economic dimension is by far the most extensively studied, being present in 96
+of the 101 articles reviewed (95%). Among these studies, minimising cost is the predominant objective, especially when
+15
+
+it comes only to minimising the transport cost [46, 114, 11, 1], associated with the number of arcs served. However, it
+is possible to identify studies that also consider other variable costs, such as service costs [57] and various operational
+costs [71]; as well as fixed costs, including the installation of facilities [59, 55] and the fixed cost of the vehicles used
+[87, 7, 55]. In addition, minimisation of travel time has been a considerable objective (24%) [6, 77, 31, 89, 49], having
+some variations like minimisation of makespan [45, 63] and deadhead time [56]. Likewise, distance has been studied sig-
+nificantly, representing 23% of the results. In these studies, the minimisation of travelling distance is the most commonly
+used [60, 73, 123, 22], followed by the minimisation of deadhead distance [47, 91]. Finally, complementing the evaluation
+of costs, some articles (6) have also assessed the maximisation of profit, considering revenues related to the served arcs
+[134, 102, 5].
+Regarding the environmental dimension, this has only been evaluated in 5 publications. Some of these works incorporate
+this dimension in the economic objective function of cost reduction through carbon emission costs [118, 72]. Only 2 recent
+articles have incorporated particular objective functions for this dimension, such as the minimisation of Greenhouse gas
+(GHG) emissions [119] and carbon emissions [120, 17]. Furthermore, the authors in [54] propose a multi-objective model
+which aims to minimise the energy consumed by vehicles.
+The social dimension is the second most studied dimension, representing 11% of the total of the studies, and has been
+addressed through different approaches. From a customer and citizen satisfaction perspective, the minimisation of ser-
+vice times [55, 117], the maximisation of trip attractiveness in tourism applications [120], and the maximisation of safety
+in cases of patrolling and inspection [130, 42] have been evaluated. On the other hand, from a labour perspective, the
+maximisation of job opportunities [119], minimising working days [23, 21], and minimisation of workload [3] have been
+assessed.
+The political dimension has been the least considered in these studies. The only way in which this dimension was found
+was in economic objectives as penalties for non-compliance with service [57, 103].
+The technological pillar of sustainability has been assessed in 8 studies and it has focused mainly on the minimisation of the
+vehicle fleet [52, 131, 53, 21]. In addition, vehicle compactness and distribution have been evaluated in some documents
+[110, 35].
+Finally, it is relevant to mention the lack of multi-objective models under a sustainable approach. From the articles in the
+survey, 13% adopted a bi-objective model, and only 4% evaluated three objectives [21, 23, 17], with only one work in-
+cluding economic, environmental and social objectives [119]. None of the articles reviewed model notions of regenerative
+operations or practices.
+5.6. Solution methods
+Figure 10 illustrates the historical distribution of solution methods employed in the literature on ARP models, spanning
+several years. Machine Learning has been applied to solution methods such as heuristics, metaheuristics, matheuristics,
+and decomposition strategies for exact methods. This graphical representation categorises the solution methods into these
+four distinct types.
+0
+2
+4
+6
+8
+10
+12
+1978
+1991 1994
+1996
+2001
+2005
+2006
+2008
+2011
+2012
+2014 2015
+2016
+2017
+2018
+2019
+2020
+2021
+2022
+2023 2024
+2025
+Exact
+Heuristic
+Matheuristic
+Metaheuristic
+Figure 10: Historical distribution of publications according to the solution method proposed.
+16
+
+A noteworthy trend evident from the chart is the pronounced growth in the adoption of machine learning techniques
+for developing algorithms such as metaheuristic and matheuristic methods in recent years. These methods have seen
+a substantial increase, reflecting their rising prominence and effectiveness in addressing complex optimisation in ARP.
+Among metaheuristics, the most commonly used algorithms are Adaptive Large Neighborhood Search (ALNS) [103, 61,
+127, 87], Ant Colony Algorithm [72, 53, 109, 60], Genetic Algorithms [86, 118, 135], and Memetic Algorithms [22, 131],
+each of these with their respective variations. Regarding matheuristics, [29] proposed a Constructive Algorithm based on
+the metaheuristic Local Search Algorithm and the exact method Branch and Cut. The work of [56] provides matheuristics
+using a Mixed Integer Linear Programming (MILP) formulation and a Geography Information System (GIS) to decrease
+the size of the MILP problems to solve. The authors in [132] developed a Three-phase Matheuristic Algorithm using
+a compartment assignment algorithm for choosing the type of vehicle, a vehicle selection phase using ALNS, and an
+algorithm that selects the set of best routes for the fleet obtained.
+Conversely, the use of exact methods has remained relatively stable, indicating a consistent but limited applicability due
+to the complexity and size of problems. In this field, although some studies solve small instances directly using solver
+software [59, 114, 9], the most popular algorithm methods are the Branch and Bound [105, 120], Branch and Cut [46, 14],
+Branch and Price [134, 76], and Column Generation [4, 69].
+Heuristic methods, while still employed, show a slight decline in usage over time, possibly overshadowed by the more
+sophisticated metaheuristic and matheuristic techniques. Among the most commonly used are Local Search heuristics
+[129, 31, 126, 92], constructive heuristics [128, 10, 89], and various two-stage heuristics [77, 13, 43].
+This shift highlights a significant evolution in the field, suggesting a move towards more flexible and powerful solution
+strategies that can better handle the dynamic and intricate nature of modern arc routing problems.
+6. Key Insights into ARP for Roadside Management
+According to the analysis based on various evaluation criteria, it is possible to identify models with characteristics sim-
+ilar to those required for roadside management (see Section 2.3). This section aims to compile all the relevant information
+from the analysed articles. Table 4 presents a comparison between the roadside management requirements highlighted in
+this work and articles from the literature, sorted by applications, with similar model features. The column “% Literature”
+shows the total percentage of articles that considered each feature in their models.
+Criteria
+Roadside Management requirements
+Waste collection
+Snow ploughing
+Debris collection
+Road maintenance
+Track maintenance
+% Literature
+[17]
+[119]
+[50]
+[74]
+[45]
+[85]
+[8]
+[121]
+[4]
+[52]
+[23]
+[21]
+Type of graph
+Directed with multiple types of arcs
+x
+x
+x
+4,95%
+Type of decision
+(excluding routing)
+Strategic: Location
+x
+x
+x
+x
+x
+8,91%
+Tactical: Allocation of tasks
+x
+x
+x
+x
+x
+x
+7,92%
+Tactical: Allocation of vehicles
+x
+x
+x
+7,92%
+Operational: Worker’s scheduling
+0,00%
+Number of depots
+Multiple fixed depots
+x
+x
+x
+x
+x
+x
+x
+x
+14,85%
+Type of vehicles
+Heterogeneous fleet: Costs
+x
+x
+x
+x
+4,95%
+Heterogeneous fleet: Time
+x
+x
+x
+x
+3,96%
+Heterogeneous fleet: Tasks
+x
+x
+x
+4,95%
+Time features
+Multi-period planning
+x
+x
+x
+11,88%
+Sustainability
+Holisitic approach
+x
+x
+x
+2,97%
+Regenerative operations
+0,00%
+Demand
+Varies according to the objective
+0,00%
+Table 4: Summary of key findings in ARP literature for applications in roadside management.
+In this analysis, different applications with similar characteristics have been identified that could be applicable in the
+context of roadside management activities. The most critical task in road maintenance is mowing, which, like the pruning
+activity, can be modelled analogously to models where the task is to collect distributed demand on the arcs. Examples of
+these applications are waste collection and snow ploughing with collection models, as they are primarily based on planning
+the routing of trucks equipped to collect high volumes of demand.
+Complementing these activities, track and road maintenance models also present similarities in the technical part of the
+maintenance, especially those focused on a railway network. In this type of maintenance, a technical team with staff pre-
+pared for different maintenance activities is deployed across the network.
+Type of graph: Regarding the design of the network for road maintenance problems, the main gap found in the analysed
+literature is that they are primarily focused on applications in urban areas such as cities and residential areas (as is the case
+with municipal solid waste and meter reading), whereas roadside management must be carried out in rural areas. The only
+similar approach in network design is the applications in railway networks. The infrastructure of roads is different from
+that of streets (see Section 2.1.1). Unlike streets, roads in rural areas typically have a greater extension, which affects the
+distance of the arcs that must be traversed. In addition, urban sectors such as cities and residential areas have a higher
+number of intersections, which translates in the graph as a higher number of vertices, and therefore a higher number of
+17
+
+edges and arcs.
+Based on graph theory and the rural road infrastructure, the most suitable type of map for modelling roadside maintenance
+problems is the directed graph, as maintenance must be done on both sides of the road. However, one of the most distinctive
+features in roadside management is the segmentation of the arcs according to the different sections of the roadside, which
+have different maintenance requirements. In this matter, the literature has studied multiple types of arcs that need service,
+such as lanes and pavement in snow ploughing [45] and roads blocked with different types of debris that require specific
+vehicles to remove them [121]. Nevertheless, they are modelled separately as different arcs. In contrast, the different
+sections of roadsides are contained within the same arc. This type of arc has not been found in the literature.
+Type of decisions: LARP models can be useful to define the location of depots and collection or valorisation centres for
+biomass recovery in the roadside management network. Once the biomass collection trucks have reached their maximum
+capacity or have completed the maintenance route and returned to the technical centre, they must head to the collection
+centres to valorise the collected biomass. For this activity, applications in waste collection can be useful, especially those
+that consider routes to waste recycling or final disposal.
+Facility allocation is also a key decision in real-life applications. In the case of roadside maintenance, the budget is lim-
+ited, so the number of tasks assigned to each depot must be determined by the proper allocation of vehicles and workers.
+Although there is plenty of literature that addresses tasks and vehicle allocation, there is no article studying the scheduling
+of the available workers at an operational level. Although complicated, this decision is essential for modelling not only
+roadside management activities, but also a wide range of real-world applications. The literature should explore this field
+in greater depth.
+Number of depots: As with location decisions, LARP models are useful for routing vehicles through multiple depots.
+There is considerable literature about LARPs for winter gritting services, especially through the use of multiple interme-
+diate facilities.
+Type of vehicles: The characteristics of the vehicles are an important point to consider in modelling roadside manage-
+ment, as the different activities performed require different machinery, so it is necessary to consider a heterogeneous fleet
+of vehicles. In this case, the literature has considered multiple useful approaches, particularly in snow ploughing and road
+maintenance applications, such as differences in vehicles’ costs, service times, and tasks to carry out.
+Time features: These can be employed in different ways depending on the interests of the model study. The main function-
+ality in roadside management is the consideration of multiple planning periods since each activity must be done during a
+certain period of the year due to seasonal factors. Literature has explored this topic in depth, especially in waste collection
+and track maintenance.
+Nature of demand: The demand has been frequently modelled as an uncertain parameter under stochastic and dynamic
+data. In the context of road maintenance, although the vegetation in green spaces on the roadside depends on uncertain
+parameters such as the season and the type of vegetation, the feature that differentiates it from other literature applications
+is that the demand of the model is defined as a certain volume of biomass that depends on the decision of how much to cut
+according to the objective that is being optimised. For example, if the objective is the minimisation of risks of accidents,
+decisions should prioritise a low level of vegetation in winding roads, where visibility is poor. This survey has shown that
+there is no article addressing the demand through this approach.
+Sustainability modelling: The development of sustainable roadside management is a growing challenge due to climate
+change and the growth of rural infrastructure in the coming years. Therefore, a holistic perspective focused on the five
+pillars of sustainability would allow for a better evaluation of sustainable development and the performance of the multi-
+ple ecosystem services that roadsides can provide. Despite this, a second and considerable gap in the literature lies in the
+scarcity of sustainable objective assessments, focusing mainly on the economic area. However, it is possible to find works
+like that of [119], who has included economic, environmental, and social objectives in his analysis. Sustainable objectives
+present in the literature, such as minimising greenhouse gas emissions (environmental) [120], minimising working days
+(social) [23], and minimising the fleet of vehicles (technological) [53], can be useful in the context of roadside main-
+tenance. Despite these findings, in order to better evaluate a model adapted to roadside management, it is necessary to
+include regenerative operations that can enhance the performance of ecosystem services provided by roadsides or to apply
+life cycle assessment through other impact categories such as energy consumption, resource depletion, and human toxicity
+potential.
+Solution methods: All these technical and modelling considerations translate into a model with a complex structure in
+terms of optimisation, that is, an NP-hard model. For this, multiple solution methods including machine learning tech-
+niques have been identified in the literature. Roadside management includes operational decisions that must be made in
+the short term, so low-resolution times are required. Because of this, the resolution method considered will depend on the
+complexity of the model and the size of the instance used, needing to find a balance between the resolution time and the
+distance between the optimal solution and the feasible solution found. One option to reduce the complexity is applying
+two-stage modelling, separating the maintenance tasks into different optimisation models, where the outputs of the first
+model become the input for the second optimisation. This reduces the number of variables and the size of the graph since
+not all arcs require the same type of maintenance, that is, a route may need mowing but not necessarily need pruning.
+Depending on the case study, there will be limitations with this methodology, as to ensure the models are consistent with
+each other, it must be ensured that each considered activity serves different arcs, that is, that the same arc is not served
+twice.
+18
+
+Finally, sustainable roadside management must be evaluated under different sustainable objectives, which implies the use
+of multi-objective solving methods. The literature has studied almost only bi-objective approaches, leaving a considerable
+gap regarding multi-objective solution techniques that can cope with more than 3 objectives.
+7. Conclusions and Perspectives
+The ARP has emerged as an essential framework for optimising logistics in various real-life applications. This paper
+presents a systematic review of the published literature discussing ARP models applied to real-life problems, aiming to
+identify and evaluate existing models and their applicability in sustainable roadside management. The existing contribu-
+tion towards the subject is analysed based on relevant criteria, such as field of application, network approaches, model
+features, nature of demand, sustainability objectives, and solution methods.
+Findings
+Several key findings have been identified in the development of this review. The bibliometric analysis revealed a signif-
+icant increase in the number of publications, indicating growing interest and development in this scientific domain. One
+of the main drivers for this growth was the development of machine learning techniques by the use of metaheuristic and
+matheuristic methods, which have the ability to handle complex problems and large instances, overcoming the limitations
+of traditional exact and heuristic methods.
+The analysis of the selected criteria has provided a comprehensive overview of the current state of ARP research. This has
+allowed for a detailed description of the specific needs for a model adapted to roadside management. Regarding real-life
+applications, the ARP models have been applied in a wide range of contexts demonstrating their flexibility and adaptability
+to different logistical scenarios. Particularly, applications in waste collection, winter road maintenance, and track main-
+tenance were found to be useful as examples for modelling roadside management scenarios. Considering the aspect of
+sustainability, although it was found that the literature mostly dealt with the economic dimension under a mono-objective
+approach, works that integrated the other dimensions of sustainability as a whole, in particular the technological dimen-
+sion, were also considered. Interesting applications have also been found in LARP models for biomass recovery, the use
+of heterogeneous fleets to adapt to the different technologies present in management, differences between urban and rural
+networks, and applications of uncertainty mainly in demand.
+Gaps
+Despite the advances that have been made, several gaps in the existing literature limit the potential of ARP models. There
+are no studies that directly address roadside management using this approach, which highlights the need to develop specific
+models for this purpose. Although some important features for roadside management have been addressed in the literature
+through other applications, key components regarding the type of arcs, demand, operational decisions and sustainable and
+regenerative aspects are still missing. Despite being a major factor in enabling more reliable simulation of many day-to-day
+operations, operational decisions beyond vehicle routing, such as scheduling workers have not been studied. Additionally,
+the integration of sustainability via environmental, social, political and technological objectives into ARP models remains
+limited, indicating the need for more holistic approaches. Furthermore, current models lack comprehensive strategies for
+incorporating regenerative practices.
+Future work
+To bridge these gaps, future work should focus on investigating and developing ARP models specifically designed for
+roadside management, considering both the technical and logistical aspects of maintenance operations. It is also cru-
+cial to expand the inclusion of sustainable objectives and regenerative operations in this subject. In the case of roadside
+maintenance, it is suggested that metrics and methodologies be developed to evaluate the ecosystem services provided by
+roadsides and how these can be optimised through sustainable management. A promising direction is to include decisions
+that enable operations to be integrated with nature, minimising harm and even generating positive outcomes on environ-
+mental and social systems. Regarding solution techniques, exploring and applying advanced multi-objective optimisation
+methodologies that can handle the complexity and size of ARP problems in roadside management, such as robust optimi-
+sation approaches and hybrid algorithms, is also fundamental.
+This article has conducted an exhaustive review of 101 publications on ARP focused on real-life applications. Since this
+domain is expected to increase, it is recommended to update the search when more results are available. The use of another
+article selection methodology is advisable in order to find other useful articles in the literature that have not been consid-
+ered in this work. In addition, it is also suggested to perform new analyses such as a more extensive bibliometric analysis,
+as well as to further study the relationship between the proposed evaluation criteria, providing a wider range of ways to
+organise and display driven data. Finally, the ARP has the potential to be applied to a wide range of real-life problems, and
+it is therefore recommended that similar methodologies be applied to other fields of application that have not been studied
+in the literature.
+19
+
+Declaration
+The authors declare that they have no known competing financial interests or personal relationships that could have
+appeared to influence the work reported in this paper.
+Acknowledgement
+This research is co-funded by the European Union under the Marie Skłodowska-Curie Grant Agreement No 101081465
+(AUFRANDE). Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those
+of the European Union or the Research Executive Agency. This work has also been co-financed by the European Union
+with the European Regional Development Fund up to €409,500, by the ACTIBAC group and the Métropole du Grand
+Nancy. Neither the European Union nor the Research Executive Agency can be held responsible for them.
+Acronyms
+ALNS Adaptive Large Neighborhood Search. 16
+AOP Arc Orienteering Problem. 13
+ARP Arc Routing Problem. 2–14, 16, 17, 19
+CARP Capacitated Arc Routing Problem. 5, 8, 12, 14
+CEARP Close-Enough Arc Routing Problem. 11, 12, 14
+CPP Chinese Postman Problem. 5, 12–14
+GHG Greenhouse gas. 15
+GIS Geography Information System. 16
+LARP Location Arc Routing Problem. 11, 12, 14, 18, 19
+MCARP Mixed Capacitated Arc Routing Problem. 12, 14
+MILP Mixed Integer Linear Programming. 16
+PCARP Periodic Capacitated Arc Routing Problem. 12, 14
+PRISMA Preferred Reporting Items for Systematic Reviews and Meta-Analyses. 3, 5
+RPP Rural Postman Problem. 5, 11–14
+VRP Vehicle Routing Problem. 2, 4, 9
+References
+[1] Ahabchane, C., Langevin, A., Trépanier, M., 2021. Robust optimization for the hierarchical mixed capacitated
+general routing problem applied to winter road maintenance. Computers & Industrial Engineering 158, 107396.
+doi:10.1016/j.cie.2021.107396.
+[2] Altin, I., Sipahioglu, A., 2024. Drone Arc Routing Problems and Metaheuristic Solution Approach. Drones 8, 373.
+doi:10.3390/drones8080373.
+[3] Álvarez-Miranda, E., Epstein, R., Pereira, J., Sinnl, M., Urrutia, R., 2025. A multi-criteria districting approach
+with a lexicographic compactness metric: An application to the Chilean postal service. Computers & Operations
+Research 173, 106845. doi:10.1016/j.cor.2024.106845.
+[4] Amaya, C.A., Langevin, A., Trépanier, M., 2010. A heuristic method for the capacitated arc routing problem with
+refill points and multiple loads. Journal of the Operational Research Society 61, 1095–1103. doi:10.1057/jors.
+2009.58.
+20
+
+[5] Amini, A., Tavakkoli-Moghaddam, R., Ebrahimnejad, S., Ghodratnama, A., 2023. Mathematical modeling of a
+competitive transportation-location arc routing problem. Computers & Industrial Engineering 182, 109400. doi:10.
+1016/j.cie.2023.109400.
+[6] Amorosi, L., Puerto, J., Valverde, C., 2023. A multiple-drone arc routing and mothership coordination problem.
+Computers & Operations Research 159, 106322. doi:10.1016/j.cor.2023.106322.
+[7] Babaee Tirkolaee, E., Mahdavi, I., Seyyed Esfahani, M.M., Weber, G.W., 2020. A hybrid augmented ant colony
+optimization for the multi-trip capacitated arc routing problem under fuzzy demands for urban solid waste manage-
+ment. Waste Management & Research 38, 156–172. doi:10.1177/0734242X19865782.
+[8] Baghyari, F., Seo, J., 2025. Smart selective navigator (SSN): Enhancing urban winter road maintenance through
+optimized arc routing with hard turn restrictions. International Transactions in Operational Research n/a. doi:10.
+1111/itor.13620.
+[9] Bagloee, S.A., Tavana, M., Di Caprio, D., Asadi, M., Heshmati, M., 2017. A multi-user decision support system for
+online city bus tour planning. Journal of Modern Transportation 25, 59–73. doi:10.1007/s40534-017-0126-x.
+[10] Bautista, J., Fernández, E., Pereira, J., 2008. Solving an urban waste collection problem using ants heuristics.
+Computers & Operations Research 35, 3020–3033. doi:10.1016/j.cor.2007.01.029.
+[11] Bautista, S., Narvaez, P., Camargo, M., Chery, O., Morel, L., 2016. Biodiesel-TBL+: A new hierarchical sus-
+tainability assessment framework of PC&I for biodiesel production – Part I. Ecological Indicators 60, 84–107.
+doi:10.1016/j.ecolind.2015.06.020.
+[12] Bautista, S.C., Marche, B., Hamdani, F.E., Camargo, M., Mayer, F., Bachmann, C., Monticolo, D., 2020. Towards
+smart and suitable management of roadsides: System dynamics in the era of industry 4.0. Sustainable Operations
+and Computers 1, 13–27. doi:https://doi.org/10.1016/j.susoc.2020.12.001.
+[13] Benavent, E., Corberán, Á., Laganà, D., Vocaturo, F., 2023. A two-phase hybrid algorithm for the periodic rural
+postman problem with irregular services on mixed graphs. European Journal of Operational Research 307, 64–81.
+doi:10.1016/j.ejor.2022.09.026.
+[14] Bianchessi, N., Corberán, Á., Plana, I., Reula, M., Sanchis, J.M., 2022. The min-max close-enough arc routing
+problem. European Journal of Operational Research 300, 837–851. doi:10.1016/j.ejor.2021.10.047.
+[15] Blazquez, C.A., Beghelli, A., Meneses, V.P., 2012. A novel methodology for determining low-cost fine particulate
+matter street sweeping routes. Journal of the Air & Waste Management Association (1995) 62, 242–251. doi:10.
+1080/10473289.2011.646048.
+[16] Bodin, L.D., Kursh, S.J., 1978. A Computer-Assisted System for the Routing and Scheduling of Street Sweepers.
+Operations Research 26, 525–537. doi:10.1287/opre.26.4.525.
+[17] Cao, B., Li, R., Chen, S., 2020. A Modified Memetic Algorithm for Multi-depot Green Capacitated Arc Routing
+Problem, in: Pan, L., Liang, J., Qu, B. (Eds.), Bio-Inspired Computing: Theories and Applications, Springer,
+Singapore. pp. 739–750. doi:10.1007/978-981-15-3425-6_59.
+[18] Chen, H., Cheng, T., Shawe-Taylor, J., 2018. A Balanced Route Design for Min-Max Multiple-Depot Rural Postman
+Problem (MMMDRPP): A police patrolling case. International Journal of Geographical Information Science 32,
+169–190. doi:10.1080/13658816.2017.1380201.
+[19] Chen, L., Gendreau, M., Hà, M.H., Langevin, A., 2016. A robust optimization approach for the road network
+daily maintenance routing problem with uncertain service time. Transportation Research Part E: Logistics and
+Transportation Review 85, 40–51. doi:10.1016/j.tre.2015.11.006.
+[20] Chen, L., Hà, M.H., Langevin, A., Gendreau, M., 2014. Optimizing road network daily maintenance operations
+with stochastic service and travel times. Transportation Research Part E: Logistics and Transportation Review 64,
+88–102. doi:10.1016/j.tre.2014.02.002.
+[21] Chen, L., Xu, P., Souleyrette, R.R., 2023a. An improved multi-objective framework for the Rich arc routing problem.
+Computers & Operations Research 159, 106345. doi:10.1016/j.cor.2023.106345.
+[22] Chen, L., Xu, P., Wang, T.A., 2023b. Metro track geometry car routing problem with periodic demands: A case
+study in Beijing, China. Engineering Optimization 0, 1–20. doi:10.1080/0305215X.2023.2256228.
+21
+
+[23] Chen, L., Xu, P., Yan, X., Souleyrette, R.R., Wang, T.A., 2023c. Local-Ideal-Points based Autonomous Space
+Decomposition framework for the Multi-objective Periodic Generalized Directed Rural Postman problem under
+Length Restrictions with Intermediate Facilities. Computers & Operations Research 150, 106052. doi:10.1016/
+j.cor.2022.106052.
+[24] Chen, L., Xu, P., Yan, X., Souleyrette, R.R., Wang, T.A., 2023d. Local-Ideal-Points based Autonomous Space
+Decomposition framework for the Multi-objective Periodic Generalized Directed Rural Postman problem under
+Length Restrictions with Intermediate Facilities. Computers & Operations Research 150, 106052. doi:10.1016/
+j.cor.2022.106052.
+[25] Cheng, J., Liao, T., Wu, G., Ma, Z., Shi, J., 2025. Two-Echelon Arc Routing Problem With Drones in Traffic
+Patrol. IEEE Transactions on Automation Science and Engineering 22, 17170–17188. doi:10.1109/TASE.2025.
+3575171.
+[26] Constantino, M., Mourão, M.C., Pinto, L.S., 2017.
+Dissimilar arc routing problems.
+Networks 70, 233–245.
+doi:10.1002/net.21763.
+[27] Corberán, Á., Eglese, R., Hasle, G., Plana, I., Sanchis, J.M., 2021a. Arc routing problems: A review of the past,
+present, and future. Networks 77, 88–115. doi:10.1002/net.21965.
+[28] Corberán, Á., Laporte, G., 2015. Arc routing: problems, methods, and applications. SIAM.
+[29] Corberán, Á., Plana, I., Reula, M., Sanchis, J.M., 2019. A matheuristic for the Distance-Constrained Close-Enough
+Arc Routing Problem. TOP 27, 312–326. doi:10.1007/s11750-019-00507-3.
+[30] Corberán, Á., Plana, I., Reula, M., Sanchis, J.M., 2021b. On the Distance-Constrained Close Enough Arc Routing
+Problem. European Journal of Operational Research 291, 32–51. doi:10.1016/j.ejor.2020.09.012.
+[31] Cortinhal, M.J., Mourão, M.C., Nunes, A.C., 2016. Local search heuristics for sectoring routing in a household waste
+collection context. European Journal of Operational Research 255, 68–79. doi:10.1016/j.ejor.2016.04.013.
+[32] De Meyer, A., Cattrysse, D., Van Orshoven, J., 2015. A generic mathematical model to optimise strategic and
+tactical decisions in biomass-based supply chains (OPTIMASS). European Journal of Operational Research 245,
+247–264. doi:10.1016/j.ejor.2015.02.045.
+[33] De Wieuw, F., Pauwels, T., Sys, C., Van de Voorde, E., van Hassel, E., Vanelslander, T., Willems, J., 2023. Collec-
+tion and processing of roadside grass clippings: A supply chain optimization case study for east flanders. Sustain-
+ability 15. URL: https://www.mdpi.com/2071-1050/15/18/14006, doi:10.3390/su151814006.
+[34] Del Pia, A., Filippi, C., 2006. A variable neighborhood descent algorithm for a real waste collection problem with
+mobile depots. International Transactions in Operational Research 13, 125–141. doi:10.1111/j.1475-3995.
+2006.00539.x.
+[35] Dhein, G., De Araújo, O.C.B., Cardoso Jr., G., 2018. Genetic local search algorithm for a new bi-objective arc
+routing problem with profit collection and dispersion of vehicles. Expert Systems with Applications 92, 276–288.
+doi:10.1016/j.eswa.2017.09.050.
+[36] Donthu, N., Kumar, S., Mukherjee, D., Pandey, N., Lim, W.M., 2021. How to conduct a bibliometric analysis:
+An overview and guidelines. Journal of Business Research 133, 285–296. URL: https://www.sciencedirect.com/
+science/article/pii/S0148296321003155, doi:https://doi.org/10.1016/j.jbusres.2021.04.070.
+[37] Dror, M., 2000. Arc Routing: Theory, Solutions and Applications. doi:10.1007/978-1-4615-4495-1.
+[38] Eglese, R.W., 1994. Routeing winter gritting vehicles. Discrete Applied Mathematics 48, 231–244. doi:10.1016/
+0166-218X(92)00003-5.
+[39] Eglese, R.W., Murdock, H., 1991. Routeing Road Sweepers in a Rural Area. Journal of the Operational Research
+Society 42, 281–288. doi:10.1057/jors.1991.66.
+[40] Fernández, E., Leitner, M., Ljubić, I., Ruthmair, M., 2022. Arc Routing with Electric Vehicles: Dynamic Charging
+and Speed-Dependent Energy Consumption. Transportation Science 56, 1219–1237. doi:10.1287/trsc.2022.
+1126.
+[41] Ferreira, R., Móra, V., Mourão, M.C., Moz, M., Pinto, L.S., Ribeiro, J., 2022. Arc Routing for Parking Enforcement
+Officers: Exact and heuristic solutions. European Journal of Operational Research 299, 283–301. doi:10.1016/j.
+ejor.2021.08.001.
+22
+
+[42] Fröhlich, G.E.A., Gansterer, M., Doerner, K.F., 2024. A rolling horizon framework for the time-dependent multi-
+visit dynamic safe street snow plowing problem. Networks 83, 236–255. doi:10.1002/net.22189.
+[43] Ghiani, G., Guerriero, F., Improta, G., Musmanno, R., 2005. Waste collection in Southern Italy: Solution of a
+real-life arc routing problem. International Transactions in Operational Research 12, 135–144. doi:10.1111/j.
+1475-3995.2005.00494.x.
+[44] Gualandris, J., Branzei, O., Wilhelm, M., Lazzarini, S., Linnenluecke, M., Hamann, R., Dooley, K.J., Barnett, M.L.,
+Chen, C.M., 2024. Unchaining supply chains: Transformative leaps toward regenerating social–ecological systems.
+Journal of Supply Chain Management 60, 53–67. doi:10.1111/jscm.12314.
+[45] Gundersen, A.H., Johansen, M., Kjær, B.S., Andersson, H., Stålhane, M., 2017. Arc Routing with Precedence
+Constraints: An Application to Snow Plowing Operations, in: Bektaş, T., Coniglio, S., Martinez-Sykora, A.,
+Voß, S. (Eds.), Computational Logistics, Springer International Publishing, Cham. pp. 174–188. doi:10.1007/
+978-3-319-68496-3_12.
+[46] Hà, M.H., Bostel, N., Langevin, A., Rousseau, L.M., 2014. Solving the close-enough arc routing problem. Networks
+63, 107–118. doi:10.1002/net.21525.
+[47] Haghani, A., Qiao, H., 2001. Decision Support System for Snow Emergency Vehicle Routing: Algorithms and
+Application.
+Transportation Research Record: Journal of the Transportation Research Board 1771, 172–178.
+doi:10.3141/1771-22.
+[48] Hahn, T., Tampe, M., 2021. Strategies for regenerative business. Strategic Organization 19, 456–477. doi:10.
+1177/1476127020979228.
+[49] Herrera-Granda, I.D., Cadena-Echeverría, J., León-Jácome, J.C., Herrera-Granda, E.P., Chavez Garcia, D., Rosales,
+A., 2024. A Heuristic Procedure for Improving the Routing of Urban Waste Collection Vehicles Using ArcGIS.
+Sustainability 16, 5660. doi:10.3390/su16135660.
+[50] Hirbod, F., Karimi, T., Mohammadnazari, Z., Rabbani, M., Aghsami, A., 2024. Municipal solid waste management
+using multiple disposal location-arc routing and waste segregation approach: A real-life case study in England.
+Journal of Industrial and Production Engineering 41, 81–100. doi:10.1080/21681015.2023.2265925.
+[51] Holmberg, K., 2018. Heuristics for the weighted k-rural postman problem with applications to urban snow removal.
+Journal on Vehicle Routing Algorithms 1, 105–119. doi:10.1007/s41604-018-0008-3.
+[52] Huang, S.H., Lin, P.C., 2012. Multi-treatment capacitated arc routing of construction machinery in Taiwan’s smooth
+road project. Automation in Construction 21, 210–218. doi:10.1016/j.autcon.2011.06.005.
+[53] Huang, S.H., Lin, T.H., 2014. Using Ant Colony Optimization to solve Periodic Arc Routing Problem with Refill
+Points. Journal of Industrial and Production Engineering 31, 441–451. doi:10.1080/21681015.2014.980444.
+[54] Huang, Y., Mou, W., Lan, J., Luo, F., Wu, K., Lu, S., 2024. Multi-Objective Path Planning for Unmanned Sweepers
+Considering Traffic Signals: A Reinforcement Learning-Enhanced NSGA-II Approach. Sustainability 16, 11297.
+doi:10.3390/su162411297.
+[55] Huber, 2016. Strategic decision support for the bi-objective location-arc routing problem, in: 2016 49th Hawaii
+International Conference on System Sciences (HICSS), IEEE, Koloa, HI. pp. 1407–1416. doi:10.1109/HICSS.
+2016.178.
+[56] Janela, J., Mourão, M.C., Santiago Pinto, L., 2022. Arc routing with trip-balancing and attractiveness measures — A
+waste collection case study. Computers & Operations Research 147, 105934. doi:10.1016/j.cor.2022.105934.
+[57] Jin, X., Qin, H., Zhang, Z., Zhou, M., Wang, J., 2021. Planning of Garbage Collection Service: An Arc-Routing
+Problem With Time-Dependent Penalty Cost. IEEE Transactions on Intelligent Transportation Systems 22, 2692–
+2705. doi:10.1109/TITS.2020.2973806.
+[58] Johnson, A.M., 2008. Best practices handbook for roadside vegetation management .
+[59] Kahfi, A., Seyed Hosseini, S.M., TavakkoliMoghaddam, R., 2021. A robust optimization approach for a multi-
+period location-arc routing problem with time windows: A case study of a bank. International Journal of Nonlinear
+Analysis and Applications 12. doi:10.22075/ijnaa.2019.16392.1868.
+[60] Kanso, B., Kansou, A., Yassine, A., 2021. Open Capacitated ARC routing problem by Hybridized Ant Colony
+Algorithm. RAIRO - Operations Research 55, 639–652. doi:10.1051/ro/2021034.
+23
+
+[61] Khajepour, A., Sheikhmohammady, M., Nikbakhsh, E., 2020. Field path planning using capacitated arc routing
+problem. Computers and Electronics in Agriculture 173, 105401. doi:10.1016/j.compag.2020.105401.
+[62] Kiilerich, L., Wøhlk, S., 2018. New large-scale data instances for CARP and new variations of CARP. INFOR:
+Information Systems and Operational Research 56, 1–32. doi:10.1080/03155986.2017.1303960.
+[63] Kinable, J., van Hoeve, W.J., Smith, S.F., 2020. Snow plow route optimization: A constraint programming approach.
+IISE Transactions 53, 685–703. doi:10.1080/24725854.2020.1831713.
+[64] Kraiem, A., Audy, J.F., Lamghari, A., 2024. Adaptive large neighbourhood search for the multi-depot arc routing
+problem with flexible assignment of end depot and different arc types. Journal of the Operational Research Society
+0, 1–19. doi:10.1080/01605682.2024.2432605.
+[65] Kraiem, A., Audy, J.F., Lamghari, A., 2025. Mixed integer linear programming model for a multi-depot arc routing
+problem with different arc types and flexible assignment of end depot. Transportation Research Procedia 82, 1109–
+1119. doi:10.1016/j.trpro.2024.12.115.
+[66] Kristoffersen, P., Bühler, O., Larsen, S., Randrup, T., 2010. Growth of newly established tilia platyphyllos ‘rubra’
+roadside trees in response to weed control and pruning. Arboriculture and Urban Forestry 36, 35–40. doi:10.
+48044/jauf.2010.005.
+[67] Lahyani, R., Khemakhem, M., Semet, F., 2015. Rich vehicle routing problems: From a taxonomy to a definition.
+European Journal of Operational Research 241, 1–14. doi:10.1016/j.ejor.2014.07.048.
+[68] Lampinen, J., Anttila, N., 2021. Reconciling road verge management with grassland conservation is met with
+positive attitudes among stakeholders, but faces implementation barriers related to resources and valuation. Journal
+of Environmental Planning and Management 64, 823–845. doi:10.1080/09640568.2020.1785405.
+[69] Lannez, S., Artigues, C., Damay, J., Gendreau, M., 2015. A railroad maintenance problem solved with a cut and
+column generation matheuristic. Networks 66, 40–56. doi:10.1002/net.21605.
+[70] Laurance, W.F., Clements, G.R., Sloan, S., O’Connell, C.S., Mueller, N.D., Goosem, M., Venter, O., Edwards,
+D.P., Phalan, B., Balmford, A., Van Der Ree, R., Arrea, I.B., 2014. A global strategy for road building. Nature 513,
+229–232. doi:10.1038/nature13717.
+[71] Li, M., Zhen, L., Wang, S., Lv, W., Qu, X., 2018. Unmanned aerial vehicle scheduling problem for traffic monitoring.
+Computers & Industrial Engineering 122, 15–23. doi:10.1016/j.cie.2018.05.039.
+[72] Li, T., Deng, S., Lu, C., Wang, Y., Liao, H., 2023. Optimization of Green Vehicle Paths Considering the Impact
+of Carbon Emissions: A Case Study of Municipal Solid Waste Collection and Transportation. Sustainability 15,
+16128. doi:10.3390/su152216128.
+[73] Liu, G., Ge, Y., Qiu, T.Z., Soleymani, H.R., 2014a. Optimization of snow plowing cost and time in an urban
+environment: A case study for the City of Edmonton. Canadian Journal of Civil Engineering 41, 667–675. doi:10.
+1139/cjce-2013-0409.
+[74] Liu, T., Jiang, Z., Geng, N., 2014b.
+A genetic local search algorithm for the multi-depot heterogeneous fleet
+capacitated arc routing problem.
+Flexible Services and Manufacturing Journal 26, 540–564.
+doi:10.1007/
+s10696-012-9166-z.
+[75] Lotan, T., Catrysse, D., Oudheusden, D.V., 1996. Winter gritting in the province of Antwerp: A combined location
+and routing problem. JORBEL - Belgian Journal of Operations Research, Statistics, and Computer Science 36,
+141–157.
+[76] Lu, J., Nie, Q., Mahmoudi, M., Ou, J., Li, C., Zhou, X.S., 2022. Rich arc routing problem in city logistics: Mod-
+els and solution algorithms using a fluid queue-based time-dependent travel time representation. Transportation
+Research Part B: Methodological 166, 143–182. doi:10.1016/j.trb.2022.10.011.
+[77] Luo, Zhang, Wang, Wang, Meng, 2019. Traffic Patrolling Routing Problem with Drones in an Urban Road System.
+Sensors 19, 5164. doi:10.3390/s19235164.
+[78] Marche, B., Camargo, M., Bachmann, C., 2024. Valorisation de la biomasse des bords de route: les apports des
+démonstrateurs pour le déploiement d’une filière durable. Technologie et innovation 9.
+[79] Marche, B., Camargo, M., Bautista Rodriguez, S.C., Chaudron, C., Mayer, F., Bachmann, C., 2022. Qualitative
+sustainability assessment of road verge management in france: An approach from causal diagrams to seize the impor-
+tance of impact pathways. Environmental Impact Assessment Review 97, 106911. URL: https://www.sciencedirect.
+com/science/article/pii/S0195925522001779, doi:https://doi.org/10.1016/j.eiar.2022.106911.
+24
+
+[80] Marche, B., Corrigeux, B., Camargo, M., Bachmann, C., 2023. Towards a carbon footprint analysis as an extended
+environmental indicator for roadside maintenance strategies: a multi-scale perspective, in: 2023 IEEE International
+Conference on Engineering, Technology and Innovation (ICE/ITMC), pp. 1–10. doi:10.1109/ICE/ITMC58018.
+2023.10332313.
+[81] Martins, K., Mourão, M.C., Pinto, L.S., 2015. A Routing and Waste Collection Case-Study, in: Almeida, J.P.,
+Oliveira, J.F., Pinto, A.A. (Eds.), Operational Research, Springer International Publishing, Cham. pp. 261–275.
+doi:10.1007/978-3-319-20328-7_15.
+[82] Meyer, A., Ehimen, E., Holm-Nielsen, J., 2014. Bioenergy production from roadside grass: A case study of the
+feasibility of using roadside grass for biogas production in denmark. Resources, Conservation and Recycling 93,
+124–133. doi:https://doi.org/10.1016/j.resconrec.2014.10.003.
+[83] Mihaita, A.S., Marche, B., Camargo, M., Rahimi, I., Bachmann, C., 2022. Multi-objective modelling of a roadside
+mowing problem: a case study in france, in: 2022 IEEE 28th International Conference on Engineering, Technology
+and Innovation (ICE/ITMC) and 31st International Association For Management of Technology (IAMOT) Joint
+Conference, pp. 1–8. doi:10.1109/ICE/ITMC-IAMOT55089.2022.10033303.
+[84] Milton, S., Dean, W., Sielecki, L., van der Ree, R., 2015. The Function and Management of Roadside Vegetation.
+pp. 373–381. doi:10.1002/9781118568170.ch46.
+[85] Mirzaei-Khafri, S., Bashiri, M., Soltani, R., Khalilzadeh, M., 2019. A mathematical model for the capacitated
+location-arc routing problem with deadlines and heterogeneous fleet.
+Transport 34, 692–707.
+doi:10.3846/
+transport.2019.11145.
+[86] Moazzeni, S., Tavana, M., Mostafayi Darmian, S., 2022. A dynamic location-arc routing optimization model for
+electric waste collection vehicles. Journal of Cleaner Production 364, 132571. doi:10.1016/j.jclepro.2022.
+132571.
+[87] Mofid-Nakhaee, E., Barzinpour, F., 2019. A multi-compartment capacitated arc routing problem with intermediate
+facilities for solid waste collection using hybrid adaptive large neighborhood search and whale algorithm. Waste
+Management & Research 37, 38–47. doi:10.1177/0734242X18801186.
+[88] Mor, A., Speranza, M.G., 2022. Vehicle routing problems over time: A survey. Annals of Operations Research
+314, 255–275. doi:10.1007/s10479-021-04488-0.
+[89] Mori, K., Nishikawa, H., Tomiyama, H., 2025. Interval-Aware Scheduling of Surveillance Drones: Exact and
+Heuristic Approaches. IEEE Access 13, 5749–5761. doi:10.1109/ACCESS.2025.3526771.
+[90] Mourão, M.C., Amado, L., 2005. Heuristic method for a mixed capacitated arc routing problem: A refuse collection
+application. European Journal of Operational Research 160, 139–153. doi:10.1016/j.ejor.2004.01.023.
+[91] Muyldermans, L., 2006. A LOCATION-DISTRICTING HEURISTIC FOR ARC ROUTING PROBLEMS. IFAC
+Proceedings Volumes 39, 309–314. doi:10.3182/20060517-3-FR-2903.00168.
+[92] Nevrlý, V., Šomplák, R., Popela, P., 2019. Heuristics for Waste Collection Arc Routing Problem. MENDEL 25,
+15–22. doi:10.13164/mendel.2019.1.015.
+[93] O’Sullivan, O.S., Holt, A.R., Warren, P.H., Evans, K.L., 2017. Optimising UK urban road verge contributions to
+biodiversity and ecosystem services with cost-effective management. Journal of Environmental Management 191,
+162–171. doi:10.1016/j.jenvman.2016.12.062.
+[94] Page, M.J., McKenzie, J.E., Bossuyt, P.M., Boutron, I., Hoffmann, T.C., Mulrow, C.D., Shamseer, L., Tetzlaff,
+J.M., Akl, E.A., Brennan, S.E., Chou, R., Glanville, J., Grimshaw, J.M., Hróbjartsson, A., Lalu, M.M., Li, T.,
+Loder, E.W., Mayo-Wilson, E., McDonald, S., McGuinness, L.A., Stewart, L.A., Thomas, J., Tricco, A.C., Welch,
+V.A., Whiting, P., Moher, D., 2021. The PRISMA 2020 statement: An updated guideline for reporting systematic
+reviews. The BMJ 372. doi:10.1136/BMJ.N71.
+[95] Pantha, B.R., Yatabe, R., Bhandary, N.P., 2010. GIS-based highway maintenance prioritization model: An in-
+tegrated approach for highway maintenance in Nepal mountains. Journal of Transport Geography 18, 426–433.
+doi:10.1016/j.jtrangeo.2009.06.016.
+[96] Phillips, B.B., Bullock, J.M., Osborne, J.L., Gaston, K.J., 2020a. Ecosystem service provision by road verges.
+Journal of Applied Ecology 57, 488–501. doi:10.1111/1365-2664.13556.
+[97] Phillips, B.B., Wallace, C., Roberts, B.R., Whitehouse, A.T., Gaston, K.J., Bullock, J.M., Dicks, L.V., Osborne,
+J.L., 2020b. Enhancing road verges to aid pollinator conservation: A review. Biological Conservation 250, 108687.
+doi:10.1016/j.biocon.2020.108687.
+25
+
+[98] Pramudita, A., Taniguchi, E., 2014. Model of debris collection operation after disasters and its application in urban
+area. International Journal of Urban Sciences 18, 218–243. doi:10.1080/12265934.2014.929507.
+[99] Qiao, Y., Dawson, A.R., Parry, T., Flintsch, G.W., 2015. Evaluating the effects of climate change on road main-
+tenance intervention strategies and Life-Cycle Costs. Transportation Research Part D: Transport and Environment
+41, 492–503. doi:10.1016/j.trd.2015.09.019.
+[100] Rambandara, R.D.S.S., Prabodanie, R.A.R., Karunarathne, E.A.C.P., Rajapaksha, R.D.D., 2022. Improving the
+Efficiency of Urban Waste Collection Using Optimization: A Case Study. Process Integration and Optimization for
+Sustainability 6, 809–818. doi:10.1007/s41660-022-00232-8.
+[101] Ravi, R., de Souza, M.F., Adriaens, A., Vingerhoets, R., Luo, H., Van Dael, M., Meers, E., 2023. Exploring the
+environmental consequences of roadside grass as a biogas feedstock in Northwest Europe. Journal of Environmental
+Management 344, 118538. doi:10.1016/j.jenvman.2023.118538.
+[102] Reula, M., Martí, R., 2023. Heuristics for the Profitable Close-Enough Arc Routing Problem. Expert Systems with
+Applications 230, 120513. doi:10.1016/j.eswa.2023.120513.
+[103] Riquelme-Rodríguez, J.P., Langevin, A., Gamache, M., 2014. Adaptive large neighborhood search for the periodic
+capacitated arc routing problem with inventory constraints. Networks 64, 125–139. doi:10.1002/net.21562.
+[104] Rodrigues, A.M., Soeiro Ferreira, J., 2015. Waste collection routing—limited multiple landfills and heterogeneous
+fleet. Networks 65, 155–165. doi:10.1002/net.21597.
+[105] Rodríguez-Pereira, J., Laporte, G., 2022. The target visitation arc routing problem. TOP 30, 60–76. doi:10.1007/
+s11750-021-00601-5.
+[106] Rolnick, D., Donti, P.L., Kaack, L.H., Kochanski, K., Lacoste, A., Sankaran, K., Ross, A.S., Milojevic-Dupont,
+N., Jaques, N., Waldman-Brown, A., Luccioni, A.S., Maharaj, T., Sherwin, E.D., Mukkavilli, S.K., Kording, K.P.,
+Gomes, C.P., Ng, A.Y., Hassabis, D., Platt, J.C., Creutzig, F., Chayes, J., Bengio, Y., 2023. Tackling Climate
+Change with Machine Learning. ACM Computing Surveys 55, 1–96. doi:10.1145/3485128.
+[107] Sahin, H., Kara, B.Y., Karasan, O.E., 2016. Debris removal during disaster response: A case for Turkey. Socio-
+Economic Planning Sciences 53, 49–59. doi:10.1016/j.seps.2015.10.003.
+[108] Salazar-Aguilar, M.A., Langevin, A., Laporte, G., 2012. Synchronized arc routing for snow plowing operations.
+Computers & Operations Research 39, 1432–1440. doi:10.1016/j.cor.2011.08.014.
+[109] Sallem, R., Serbaji, M.M., Alamri, A.M., Kallel, A., Trabelsi, I., 2021. Optimal routing of household waste col-
+lection using ArcGIS application: A case study of El Bousten district, Sfax city, Tunisia.
+Arabian Journal of
+Geosciences 14, 1038. doi:10.1007/s12517-021-07265-2.
+[110] Sniezek, J., Bodin, L., 2006. Using mixed integer programming for solving the capacitated arc routing problem with
+vehicle/site dependencies with an application to the routing of residential sanitation collection vehicles. Annals of
+Operations Research 144, 33–58. doi:10.1007/s10479-006-0006-y.
+[111] Sökmen, O.C., Yılmaz, M., 2021. Hierarchical Chinese postman problem with fuzzy travel times. Iranian Journal
+of Fuzzy Systems 18, 87–105. doi:10.22111/ijfs.2021.6257.
+[112] Song, U., Son, D., Kang, C., Lee, E.J., Lee, K., Park, J.S., 2018. Mowing: A cause of invasion, but also a po-
+tential solution for management of the invasive, alien plant species erigeron annuus (l.) pers. Journal of Environ-
+mental Management 223, 530–536. URL: https://www.sciencedirect.com/science/article/pii/S0301479718307096,
+doi:https://doi.org/10.1016/j.jenvman.2018.06.057.
+[113] Su, Z., Jamshidi, A., Núñez, A., Baldi, S., De Schutter, B., 2019. Integrated condition-based track maintenance
+planning and crew scheduling of railway networks. Transportation Research Part C: Emerging Technologies 105,
+359–384. doi:10.1016/j.trc.2019.05.045.
+[114] Su, Z., Schutter, B.D., 2018. Optimal scheduling of track maintenance activities for railway networks∗. IFAC-
+PapersOnLine 51, 386–391. doi:10.1016/j.ifacol.2018.07.063.
+[115] Sun, W., Luo, Z., Hu, X., Pedrycz, W., Shi, J., 2024.
+An improved variable neighborhood search algorithm
+embedded temporal and spatial synchronization for vehicle and drone cooperative routing problem with pre-
+reconnaissance. Swarm and Evolutionary Computation 91, 101699. doi:10.1016/j.swevo.2024.101699.
+[116] Tagmouti, M., Gendreau, M., Potvin, J.Y., 2011. A dynamic capacitated arc routing problem with time-dependent
+service costs. Transportation Research Part C: Emerging Technologies 19, 20–28. doi:10.1016/j.trc.2010.
+02.003.
+26
+
+[117] Tan, S., Li, Z., Xie, N., 2021. Dynamic Capacitated Arc Routing Problem in E-Bike Sharing System: A Monte
+Carlo Tree Search Approach. Journal of Advanced Transportation 2021, e9665340. doi:10.1155/2021/9665340.
+[118] Tirkolaee, E., Hosseinabadi, A., Soltani, M., Sangaiah, A., Wang, J., 2018. A Hybrid Genetic Algorithm for Multi-
+Trip Green Capacitated Arc Routing Problem in the Scope of Urban Services. Sustainability 10, 1366. doi:10.
+3390/su10051366.
+[119] Tirkolaee, E.B., Goli, A., Gütmen, S., Weber, G.W., Szwedzka, K., 2023. A novel model for sustainable waste
+collection arc routing problem: Pareto-based algorithms. Annals of Operations Research 324, 189–214. doi:10.
+1007/s10479-021-04486-2.
+[120] Tricoire, F., Parragh, S.N., Gansterer, M., 2024. The hiking tourist problem. Central European Journal of Operations
+Research 32, 183–207. doi:10.1007/s10100-023-00895-9.
+[121] Tükenmez, İ., Saraç, T., Kaya, O., 2024. A MILP model and a heuristic algorithm for post-disaster connectivity
+problem with heterogeneous vehicles. Journal of Heuristics 30, 359–396. doi:10.1007/s10732-024-09531-4.
+[122] Usberti, F.L., França, P.M., França, A.L.M., 2011.
+The open capacitated arc routing problem.
+Computers &
+Operations Research 38, 1543–1555. doi:10.1016/j.cor.2011.01.012.
+[123] Vecchi, T.P., Surco, D.F., Constantino, A.A., Steiner, M.T., Jorge, L.M., Ravagnani, M.A., Paraíso, P.R., 2016. A
+sequential approach for the optimization of truck routes for solid waste collection. Process Safety and Environmental
+Protection 102, 238–250. doi:10.1016/j.psep.2016.03.014.
+[124] Vidal, T., Laporte, G., Matl, P., 2020. A concise guide to existing and emerging vehicle routing problem variants.
+European Journal of Operational Research 286, 401–416. doi:10.1016/j.ejor.2019.10.010.
+[125] Wan, Q., Ernst, A.T., García-Flores, R., Bowly, S., Kilby, P., 2025. A Polynomial Time Solvable Capacitated Arc
+Routing Problem on Regular Grid Graphs. Networks 85, 272–287. doi:10.1002/net.22262.
+[126] Wang, K., Wu, Q., He, X., Hu, C., Chen, N., 2022. Optimizing UAV traffic monitoring routes during rush hours
+considering spatiotemporal variation of monitoring demand. International Journal of Geographical Information
+Science 36, 2086–2111. doi:10.1080/13658816.2022.2045605.
+[127] Wei, C., Wøhlk, S., Che, A., 2024. A multi-level capacitated arc routing problem with intermediate facilities in
+waste collection. Computers & Operations Research 167, 106671. doi:10.1016/j.cor.2024.106671.
+[128] Willemse, E.J., Joubert, J.W., 2016. Constructive heuristics for the Mixed Capacity Arc Routing Problem under
+Time Restrictions with Intermediate Facilities. Computers & Operations Research 68, 30–62. doi:10.1016/j.
+cor.2015.10.010.
+[129] Willemse, E.J., Joubert, J.W., 2019. Efficient local search strategies for the Mixed Capacitated Arc Routing Problems
+under Time Restrictions with Intermediate Facilities. Computers & Operations Research 105, 203–225. doi:10.
+1016/j.cor.2019.02.002.
+[130] Xu, B., Zhao, K., Luo, Q., Wu, G., Pedrycz, W., 2023. A GV-drone arc routing approach for urban traffic patrol
+by coordinating a ground vehicle and multiple drones. Swarm and Evolutionary Computation 77, 101246. doi:10.
+1016/j.swevo.2023.101246.
+[131] Yi Mei, Ke Tang, Xin Yao, 2011. A Memetic Algorithm for Periodic Capacitated Arc Routing Problem. IEEE
+Transactions on Systems, Man, and Cybernetics, Part B (Cybernetics) 41, 1654–1667. doi:10.1109/TSMCB.2011.
+2158307.
+[132] Zbib, H., Laporte, G., 2020. The commodity-split multi-compartment capacitated arc routing problem. Computers
+& Operations Research 122, 104994. doi:10.1016/j.cor.2020.104994.
+[133] Zdanevitch, I., Lencauchez, J., Duffo, L., ANDRE, L., Ribeiro, T., Pineau, C., 2021. Roadside grass valorization in
+anaerobic digestion ("carmen" project).
+[134] Zhang, G., Jia, N., Zhu, N., Adulyasak, Y., Ma, S., 2023. Robust drone selective routing in humanitarian trans-
+portation network assessment. European Journal of Operational Research 305, 400–428. doi:10.1016/j.ejor.
+2022.05.046.
+[135] Zhengyu Zhu, Mengshuang Xia, Yong Yang, Xiaohua Li, Xin Deng, Zhihua Xie, 2008. An improved genetic
+algorithm for the extended Capacitated Arc Routing Problem, in: 2008 7th World Congress on Intelligent Control
+and Automation, IEEE, Chongqing, China. pp. 2017–2022. doi:10.1109/WCICA.2008.4593234.
+[136] Zilioniene, D., Vorobjovas, V., 2011. Analysis of driving conditions on low-volume roads in lithuania assessing
+geometry parameters of roads. 8th International Conference on Environmental Engineering, ICEE 2011 .
+27

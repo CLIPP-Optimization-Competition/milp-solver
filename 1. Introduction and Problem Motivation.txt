@@ -1,0 +1,172 @@
+Introduction and Problem Motivation 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Table of Contents 
+ 
+I. Introduction​
+2 
+II. Background: Google Hash Code and Street View Routing​
+2 
+III. Computational Complexity and NP-Hardness​
+3 
+IV. Motivation for Use in the CLIPP Project​
+4 
+V. Motivation for Adaptation to Climate Resilience​
+4 
+References​
+6 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+I.​
+Introduction 
+As part of the Climate Integrated Pathways for Podujeva (CLIPP) project, this competition aims 
+to engage university students in solving realistic decision-making problems related to climate 
+resilience using algorithmic methods. The primary objective of the first competition challenge is 
+to expose participants to a computationally hard optimization problem that requires planning, 
+scheduling, and heuristic reasoning under realistic constraints, while remaining solvable within a 
+limited competition timeframe. 
+To achieve this balance, we build upon the Street View Routing (SVR) [1] problem introduced 
+in the inaugural edition of Google Hash Code, a team programming competition organized by 
+Google and held annually from 2014 to 2023. Hash Code was explicitly designed to present 
+participants with open-ended, real-world–inspired optimization problems for which exact 
+solutions are infeasible at scale, encouraging the use of greedy methods, heuristics, and 
+metaheuristics rather than closed-form algorithms or exhaustive search. 
+II.​
+Background: Google Hash Code and Street View Routing 
+Google Hash Code was created by engineers at Google France as a university-oriented 
+programming competition emphasizing teamwork, practical problem solving, and scalable 
+algorithm design. From its first edition in 2014, Hash Code grew from a local event with a few 
+hundred participants into a global competition with over 100,000 contestants, before being sunset 
+in 2023 as part of Google’s broader Coding Competitions program. Throughout its history, Hash 
+Code consistently focused on problems inspired by real engineering challenges faced at Google, 
+particularly those involving large-scale optimization and trade-offs under constraints [2]. 
+ 
+
+The Street View Routing problem was the very first problem used in the inaugural Hash Code 
+competition in 2014. It was directly inspired by real optimization work at Google France related 
+to planning routes for Street View cars capturing imagery of urban environments. The original 
+problem models a city as a graph whose vertices represent street junctions and whose edges 
+represent streets, which may be either one-directional or bidirectional. Each street is associated 
+with a traversal time and a length, and all vehicles start from a common depot. 
+ 
+Given a fixed time budget and a fleet of vehicles, the objective is to maximize the total length 
+of unique streets traversed at least once by any vehicle. Traversing the same street multiple 
+times, or in both directions, does not yield additional benefit. The problem was provided with 
+multiple datasets of varying scale, ranging from small instances to large city-scale graphs, 
+allowing participants to iteratively improve their solutions during the competition. 
+The SVR problem strikes a careful balance between conceptual simplicity and algorithmic 
+depth. While the input and output formats are straightforward, the combinatorial nature of the 
+problem makes it highly challenging to optimize, especially for large instances. As a result, the 
+problem is particularly well suited for academic competitions, where the emphasis is on 
+reasoning, approximation, and solution quality rather than exact optimality. 
+III.​
+Computational Complexity and NP-Hardness 
+From a computational perspective, the Street View Routing problem belongs to a broader family 
+of graph traversal and coverage problems closely related to the postman problem. In particular, 
+the version considered here can be viewed as a variant of the k-mixed postman problem. 
+
+In the classical postman problem, the objective is to find a minimum-cost route that traverses 
+every edge of a graph at least once. Several special cases are known to be tractable: the 
+undirected postman problem and the directed postman problem (both for a single vehicle) admit 
+polynomial-time solutions. However, when the graph contains a mixture of directed and 
+undirected edges, the resulting mixed postman problem is known to be NP-hard. This hardness 
+result is well established in the literature and has been explicitly discussed in analyses of the 
+Street View Routing problem. 
+The SVR problem generalizes this setting in multiple ways. First, the city graph is mixed, 
+containing both one-directional and bidirectional streets. Second, instead of a single vehicle, the 
+problem considers multiple vehicles operating simultaneously, each subject to its own time 
+constraint. Finally, the objective is not to traverse all edges, but to select a subset of edges 
+whose total length is maximized under a global time budget. This selective coverage 
+objective further increases the combinatorial complexity of the problem. 
+Because the mixed postman problem is NP-hard, and because Street View Routing strictly 
+generalizes it, the SVR problem is also NP-hard. Consequently, computing optimal solutions for 
+realistic instances is infeasible in practice, and effective approaches rely on heuristics, 
+approximation strategies, and metaheuristics. This makes the problem an excellent vehicle for 
+teaching and evaluating algorithmic thinking in the presence of computational intractability [3]. 
+IV.​
+Motivation for Use in the CLIPP Project 
+We selected the Street View Routing problem as the foundation for this competition for several 
+reasons: 
+●​ Computational difficulty: The problem is NP-hard, naturally motivating heuristic and 
+approximation-based approaches. 
+●​ Competition-proven design: It was successfully used as the first problem in a 
+large-scale international programming competition. 
+●​ Clear optimization objective: The goal is unambiguous and easily measurable, enabling 
+fair and transparent evaluation. 
+●​ Academic suitability: The problem was originally designed for a university-focused 
+competition and scales well to student-level time constraints. 
+●​ Real-world relevance: The problem models realistic routing and coverage challenges 
+encountered in urban infrastructure and logistics. 
+ 
+V.​
+Motivation for Adaptation to Climate Resilience 
+While the original Street View Routing problem focuses purely on maximizing coverage 
+efficiency, it does not explicitly account for environmental constraints or sustainability 
+considerations. In the context of the Climate Integrated Pathways for Podujeva (CLIPP) project, 
+
+whose objective is to explore algorithmic tools for climate-resilient municipal planning, we 
+extend the original formulation to reflect resource-aware urban operations under real-world 
+constraints. 
+ 
+Water scarcity is a growing global challenge and is expected to increasingly affect municipalities 
+worldwide, including the city of Podujeva. As climate change intensifies pressure on water 
+resources, municipal services that depend on water—such as street cleaning and 
+maintenance—must be planned with greater attention to resource efficiency. This motivates the 
+introduction of routing and scheduling problems in which vehicle operations are constrained not 
+only by time and distance, but also by limited and managed resources. 
+To this end, we adopt the graph-based structure of the Street View Routing problem and 
+introduce several modifications that adapt it to a realistic street-cleaning scenario. First, instead 
+of a homogeneous fleet of identical vehicles, the problem features a heterogeneous fleet 
+composed of three distinct vehicle types, each with different cleaning capabilities. Second, 
+streets are no longer treated uniformly: they are classified into mandatory streets that must be 
+serviced, optional streets that yield points when cleaned, and connector streets that serve only 
+to enable movement through the network without contributing directly to the score. Third, unlike 
+in the original SVR problem—where vehicles may end their routes at any junction—each vehicle 
+is required to start from and return to a central depot within the allotted time, reflecting 
+standard operational constraints of municipal service fleets. 
+
+These extensions transform the problem from a purely coverage-based routing task into a 
+planning and scheduling problem under resource and operational constraints, while 
+preserving the combinatorial difficulty and heuristic nature of the original formulation. Through 
+this adaptation, participants are challenged not only to design effective heuristics for an NP-hard 
+optimization problem, but also to reason about trade-offs between operational efficiency, service 
+prioritization, and resource conservation—skills that are increasingly central to climate-aware 
+urban planning and decision-making. 
+References 
+[1] Google Hash Code Archive. (2014). Problem statement for Main Round Street View Routing 
+(Hash Code 2014 Final Round). GitHub. 
+https://github.com/pierreavn/google-hashcode-archive/blob/main/archive/2014/final/hashcode_2
+014_final_round.pdf 
+ 
+[2] Pnote.eu. (n.d.). Hashcode. https://pnote.eu/projects/hashcode/ 
+ 
+[3] 
+A3nm. 
+(2014, 
+February 
+28). 
+Google 
+Hashcode 
+2014. 
+a3nm's 
+blog. 
+https://a3nm.net/blog/google_hashcode_2014.html​
+ 
+[4] DXR. (2022, December 3). Urban-Sweeper S2.0.png [Image]. Wikimedia Commons. 
+https://commons.wikimedia.org/wiki/File:Urban-Sweeper_S2.0.png 

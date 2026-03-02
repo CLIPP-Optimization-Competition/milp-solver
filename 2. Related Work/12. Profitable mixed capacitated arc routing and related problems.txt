@@ -1,0 +1,3393 @@
+TOP (2015) 23:244–274
+DOI 10.1007/s11750-014-0336-x
+ORIGINAL PAPER
+Proﬁtable mixed capacitated arc routing and related
+problems
+Enrique Benavent · Ángel Corberán · Luís Gouveia ·
+Maria Cândida Mourão · Leonor Santiago Pinto
+Received: 3 February 2014 / Accepted: 30 June 2014 / Published online: 1 August 2014
+© Sociedad de Estadística e Investigación Operativa 2014
+Abstract Mixed capacitated arc routing problems aim to identify a set of vehicle tours
+that,startingandendingatadepotnode,serveagivennumberoflinksatminimumcost,
+while satisfying the vehicles capacity. If both proﬁts and costs on arcs are considered,
+we may deﬁne the proﬁtable mixed capacitated arc routing problem (PMCARP). In
+this paper we present compact ﬂow-based models for the PMCARP, where two types
+of services are tackled, mandatory and optional. Adaptations of the models to ﬁt into
+some other related problems are also proposed. The models are evaluated, according
+to their bounds quality as well as to the CPU times, over large sets of test instances.
+New instances have been created for some variants that have been introduced here for
+the ﬁrst time. Results show the new models performance within CPLEX and compare,
+whenever available, the proposed models against other resolution methods.
+E. Benavent · Á. Corberán
+Dep. Estadística e Investigación Operativa, Univ. Valencia, Valencia, Spain
+L. Gouveia
+DEIO, Faculdade de Ciências, Universidade de Lisboa, Lisbon, Portugal
+M. C. Mourão · L. S. Pinto
+Instituto Superior de Economia e Gestão, Universidade de Lisboa, Lisbon, Portugal
+L. Gouveia · M. C. Mourão
+Centro de Investigação Operacional, Lisbon, Portugal
+L. S. Pinto
+CEMAPRE, Centro de Matemática Aplicada à Previsão e Decisão Económica, Lisbon, Portugal
+L. S. Pinto (B)
+ISEG-ULisboa, Rua do Quelhas, 6, 1200-781 Lisbon, Portugal
+e-mail: lspinto@iseg.ulisboa.pt
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+245
+Keywords
+Routing · Arc routing problems · Proﬁts · Flow-based models
+Mathematics Subject Classiﬁcation
+90B10
+1 Introduction
+We consider arc routing problems where a proﬁt is associated with the service of the
+arcs in a given subset. In these problems, we are faced with two conﬂicting objectives:
+maximizing the total collected proﬁt and minimizing the travelling cost. This conﬂict
+can be addressed in different ways: (i) by bicriteria optimization, (ii) by combining
+both goals in the same objective function, in the so-called proﬁtable problems, or (iii)
+by considering one as the objective and the other as a constraint. In the latter case,
+problems are known as orienteering or as prize-collecting problems, depending on
+if they consist of maximizing the collected proﬁt or minimizing the travelled cost,
+respectively.
+More in detail, a problem is called proﬁtable when it consists of ﬁnding a tour that
+maximizes the difference between the total collected proﬁt and the travelling cost. In
+the orienteering (or team orienteering, if a ﬂeet of identical vehicles is considered)
+problem, the objective is to maximize the collected proﬁt with the constraint that the
+cost (or time or length) of the tour does not exceed a given limit. Finally, in the prize-
+collecting problem, we look for a minimum cost tour collecting at least a given amount
+of proﬁt. This characterization follows the one proposed by Feillet et al. (2005a) for
+the node routing case.
+Proﬁtable, orienteering and prize-collecting capacitated arc routing problems
+deﬁned on mixed graphs are considered in this paper, and, as far as we know, some of
+them are introduced here for the ﬁrst time. In these problems, all links have a dead-
+heading cost associated with their traversal, and there is a subset of mandatory links
+and another subset of optional links. Mandatory and optional links are also called
+demand links or tasks and have an associated proﬁt. In general, the objective is to ﬁnd
+a set of tours that optimize a given function, servicing all the mandatory tasks and
+maybe some of the optional ones, and respecting some side constraints. The proﬁt of
+a demand link is available only once and is collected when the corresponding service
+is performed.
+Speciﬁcally, in this article we present and computationally evaluate compact ﬂow-
+based formulations for several mixed capacitated arc routing problems with proﬁts.
+Single-commodity ﬂow models provide a general framework for modelling many
+routing problems. The pioneering work of Gavish and Graves (1978) provided this
+kind of models for several routing problems. The reader is also referred to Toth and
+Vigo (2002) for other examples.
+There are several reasons that explain the wide use of these models. They are easy
+to understand, easy to implement and allow additional constraints to be handled easily.
+However, many of the routing problems modelled so far by the single-commodity ﬂow
+models are node routing problems and not much has been done with such models for
+arc routing. The main purpose of this work is to provide and evaluate single commodity
+ﬂow models for several arc routing problems with proﬁts.
+123
+
+246
+E. Benavent et al.
+In this paper, we consider (i) the proﬁtable mixed capacitated arc routing problem
+(PMP), which tries to ﬁnd a single vehicle tour maximizing the difference between the
+collected net proﬁt and the total deadheading cost; (ii) the orienteering mixed capaci-
+tated arc routing problem (OMP), where the objective is to ﬁnd a tour maximizing the
+total collected (gross) proﬁt and no deadheading cost is considered, although the tour
+length cannot be greater than a time limit L; (iii) the simpler case of the OMP, where
+no capacity constraints are considered and which is called the uncapacitated orienteer-
+ing problem (UOMP); (iv) the prize-collecting mixed capacitated arc routing problem
+(PCMP) which aims to ﬁnd a tour minimizing the total traversing cost and collecting a
+given minimum amount of proﬁt. Finally, multiple vehicle versions of these problems
+are also studied. All the problems considered in this paper are generalizations of the
+mixed rural Postman problem (MRPP). Since the MRPP is known to be NP-hard, all
+of them are also NP-hard.
+The model presentation starts with the characterization of a set of feasible solu-
+tions that is the basis of all problems. The different problems are then deﬁned and
+both one-vehicle and multiple-vehicle cases are considered. For the multiple-vehicle
+problems, an aggregate model is also presented and studied. Although non valid, the
+aggregate models generally produce good upper bounds, as it is conﬁrmed by the
+computational experiments. Benchmark instances are used for the variants already
+known from the literature and new ones have been adapted for the problems here pro-
+posed for the ﬁrst time. Results show the new models performance within CPLEX
+and compare, whenever available, the proposed models against other resolution
+methods.
+2 Literature review
+The ﬁrst arc routing problem dealing with proﬁts maximization is the maximum beneﬁt
+Chinese Postman problem (MBCPP) introduced by Malandraki and Daskin (1993),
+whostudiedits directedversion. IntheMBCPP, aproﬁt (alsocalledbeneﬁt) is collected
+each time a demand arc is traversed, although the proﬁt decreases as the number of
+traversals increases. As far as we know, no other paper on arc routing problems with
+proﬁts has been published until the mid of the ﬁrst decade of 2000, when a number of
+new articles on the subject began to appear.
+Among the proﬁtable problems, the proﬁtable rural Postman problem (PRPP, also
+called prize-collecting arc routing problem and privatized rural Postman problem) was
+the focus of the work by Aráoz et al. (2006) and Araóz et al. (2009b). In this problem,
+only the edges in a given subset R have an associated proﬁt and it is assumed that this
+proﬁt can be collected only once, independently of the number of times the edge is
+traversed. This problem can be considered a special case of a MBCPP in which only
+a positive beneﬁt is associated with the edges in R, while all the other edges have null
+beneﬁt. The capacitated version of the PRPP was studied by Irnich (2010). A related
+problem, the clustered prize-collecting arc routing problem (CPARP) was considered
+in Aráoz et al. (2009a) and Corberán et al. (2011a) for undirected and “windy” graphs,
+respectively (an undirected graph with asymmetric costs is usually called a windy
+graph). In the CPARP, the connected components deﬁned by the edges with proﬁts
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+247
+(demand edges) are considered, and it is required that if an edge is serviced, then all the
+demand edges of its component are also serviced. That is, for each component either
+all or none of its demand edges have to be serviced. Besides the above mentioned
+paper by Malandraki and Daskin (1993), Pearn and Wang (2003), Pearn and Chiu
+(2005) and Corberán et al. (2013) also discuss and study the MBCPP. Feillet et al.
+(2005b) considered a more general problem, the proﬁtable arc tour problem (PATP).
+In this case, the objective is to ﬁnd a set of cycles in the graph that maximizes the
+difference between the collected proﬁt and the travel costs; there are limits on the
+number of times that proﬁt is available on each arc and the cycles cannot exceed a
+given length. Deitch and Ladany (2000) deﬁned an orienteering problem where the
+objective is to design the tour for a touristic bus that maximizes the “attractiveness”
+of the sites visited and the scenic tours traversed. A similar problem for cyclists was
+handled by Souffriau et al. (2011). The team orienteering version of the undirected
+capacitated arc routing problem (UCARPP) is undertaken in Archetti et al. (2010) and
+the uncapacitated version on a directed graph in Archetti et al. (2013). Zachariadis and
+Kiranoudis (2011) extended this problem to consider a hierarchical objective function,
+where the proﬁt maximization is followed by the total travel time minimization. Table 1
+summarizes the main characteristics of all these problems.
+Several applications are mentioned in the literature for routing problems with prof-
+its. For instance, the orienteering problem (Vansteenwegen et al. 2011) appears in
+sport games where a set of checkpoints is given, each one with an associated score,
+and competitors try to maximize the collected score that is obtained by visiting a sub-
+set of checkpoints within a given time frame. Hochbaum and Olinick (2001) mention
+the problem of maximizing the reliability of cycles in telecommunication survival
+networks. The problem, faced by private service companies that try to maximize oper-
+ational proﬁts (instead of minimizing the costs as in the public sector) by collecting a
+subset of demand edges, also ﬁts the class of proﬁtable problems, as well as the pre-
+viously mentioned bus touring problem (see Deitch and Ladany 2000). Finally, let us
+mention that the work of Feillet et al. (2005b) focus a tactical freight transportation-
+planning problem arising in the car industry. In this context, a set of trips need to
+be planned for transporting freight between plants. Trips can either be round trips or
+direct trips. A round trip has the same origin and destination and is restricted to a given
+length. A direct trip is not constrained but is more expensive, even if, for example, a
+direct trip i −j is cheaper than a round trip i −j −i leaving the truck empty on its
+way back. Authors point out that this problem can be expressed as a PATP, where the
+set of freight transportation demands would be the set of arcs with proﬁts, the number
+of times these transportation operations have to be planned would correspond to the
+number of times proﬁts can be collected, and the differences in cost between round
+trips and direct trips would deﬁne the proﬁts.
+3 Mixed arc routing problems with proﬁts
+The problems under study are deﬁned on a mixed graph  = (N, A′ ∪E). Edges in E,
+characterize narrow two-way streets that may be served by only one traversal (zigzag
+services). Arcs in A′ represent either one-way or large two-way streets that must be
+123
+
+248
+E. Benavent et al.
+Table 1 Main characteristics of the arc routing problems with proﬁts in the literature
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+249
+served in both directions, in which case the street is modelled with two reverse arcs.
+An homogenous vehicle ﬂeet is based at a depot node, 0 ∈N.
+Two types of links in A′ ∪E are distinguished: demand links or tasks, and dead-
+heading links (i.e. links that can be traversed without need of service). Tasks are either
+mandatory (AM ⊆A
+′, EM ⊆E—links that must be served by a vehicle) or optional
+(AO ⊆A
+′, EO ⊆E—links that may be served or not). All tasks may also be dead-
+headed for connectivity purposes. Node set N represents the depot, the street crossings
+or the dead-end streets. Nalso includes a depot copy, the artiﬁcial node 0′ ∈N, joined
+to the original depot 0 by two deadheading reverse arcs of zero cost. In this way, we
+can assume without loss of generality that any vehicle will use exactly one arc leaving
+0′ and one arc entering it.
+A vehicle tour is a closed walk starting and ending at the depot copy. Each link
+contained in the tour can be just traversed (deadheaded) or, in the case of a demand
+link, it can also be served. The total demand of the links served by the vehicle cannot
+exceed its capacity. Each task has an associated proﬁt that is collected at most once,
+whenever it is served. Each time a link is deadheaded, task or not, a cost is taken into
+account. The net proﬁt associated with the service of a demand link is deﬁned as the
+difference between its (gross) proﬁt and its traversing cost.
+In what follows, we present the notation used to deﬁne and model the arc routing
+problems with proﬁts considered here:
+• G = (N, A) is a directed graph, derived from , by replacing each edge in E by
+two arcs with opposite directions, i.e., A = A′ ∪{(i, j), ( j, i) : (i, j) ∈E}.
+• B = |AM| + |AO| + |EM| + |EO| .
+• R ⊆A is the set of arcs in G associated with the tasks, and its cardinality is
+|R| = B + |EM| + |EO|.
+• For each task (i, j) ∈R: pi j is its net proﬁt, qi j its demand, and ts
+i j is the time
+needed to serve it.
+• ci j and td
+i j are the deadheading cost and time of traversing arc (i, j) ∈A, respec-
+tively.
+• K isthemaximumnumberofvehicles,thusthemaximumnumberoftoursallowed.
+• W is the capacity of each vehicle.
+The problems we are studying basically consist of ﬁnding a set of no more than
+K vehicle tours, satisfying the vehicle’s capacity, starting and ending at the depot,
+servicing all the mandatory tasks and some of the optional ones. In some of the
+models, additional constraints, as limiting the total time of the tours, will be considered.
+The goal is to maximize the collected proﬁt, or to minimize the traversing cost, or a
+combination of both.
+Single-vehicle models are studied in Sect. 3.1, while multiple-vehicle ones are
+discussed in Sect. 3.2.
+3.1 Single vehicle mixed capacitated arc routing problems with proﬁts
+We start by characterizing the feasible region for single-vehicle mixed arc routing
+problems with a compact model using ﬂow variables. Note that a feasible solution is
+a single tour, satisfying the capacity constraint, which serves all the mandatory tasks
+123
+
+250
+E. Benavent et al.
+and some of the optional ones. As in Gouveia et al. (2010), we deﬁne the following
+variables:
+• xi j =
+1 if (i, j) ∈R is served
+0 otherwise
+• yi j is the number of times that arc (i, j) ∈A is deadheaded.
+• fi j is the ﬂow traversing arc (i, j) ∈A\
+
+(0, 0′)
+
+. It is related to the remaining
+demand in the tour, or in a subtour of it.
+The set of feasible solutions is characterized by the following set of inequalities:
+
+j:(i, j)∈A
+yi j +
+
+j:(i, j)∈R
+xi j =
+
+j:( j,i)∈A
+y ji +
+
+j:( j,i)∈R
+x ji
+∀i ∈N
+(1)
+xi j = 1
+∀(i, j) ∈AM
+(2)
+xi j ≤1
+∀(i, j) ∈AO
+(3)
+xi j + x ji = 1
+∀(i, j) ∈EM
+(4)
+xi j + x ji ≤1
+∀(i, j) ∈EO
+(5)
+y0′0 = 1
+(6)
+
+j:( j,i)∈A
+f ji −
+
+j:(i, j)∈A
+fi j =
+
+j:( j,i)∈R
+q ji x ji
+∀i ∈N\
+
+0′
+(7)
+f0′0 =
+
+(i, j)∈R
+qi j xi j
+(8)
+fi j ≤W
+
+yi j + xi j
+
+∀(i, j) ∈A\
+
+(0, 0′)
+
+(9)
+xi j ∈{0, 1}
+∀(i, j) ∈R
+(10)
+fi j ≥0
+∀(i, j) ∈A\
+
+(0, 0′)
+
+(11)
+yi j ≥0, integer
+∀(i, j) ∈A
+(12)
+Conditions (1) imply the continuity of the tour at each node; the service of each
+mandatory arc and edge is guaranteed by (2) and (4), respectively; while optional
+services are allowed by (3) and (5), (6) ﬁxes node 0′ as the starting point of the
+tour, and jointly with (8) and (9), guarantees the vehicle capacity; (7) and (8) are
+ﬂow conservation constraints that together with the linking constraints (9) force the
+connectivity of the vehicle tour. Note that (7) are typical generalized ﬂow conservation
+constraints on each node i, ensuring that if arc ( j, i) is served, then q ji units of ﬂow
+are absorbed by node i. Conditions (9) imply that a ﬂow variable is positive, only if
+the corresponding arc is traversed by the vehicle tour. They are essential to impose
+connectivity and to guarantee the satisfaction of the capacity constraint, as stated
+above.
+This set contains only (2 |A| −1 + |R|) variables and the number of constraints is
+2 |N| + |A| + B. In addition, note that if (2), (4) and (6) are properly used, the model
+could even be simpliﬁed. Actually, the number of variables and constraints reduce,
+respectively, to 2 |A|−2+|A0|+2 |E0|+|EM| and to 2 |N|+|A|+|A0|+|E0|−1.
+However, and to emphasize the relationship with the following formulations, these
+conditions are preserved.
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+251
+Additional constraints
+In an attempt of improving the linear relaxation bounds, and hopefully to speed up
+the integer solver, some valid inequalities have been added to the previous set. The
+valid inequalities we have used are described next and reinforce the ones proposed in
+Gouveia et al. (2010).
+fi j ≥qi j xi j + (yi j −1) min
+(k,l)∈R {qkl}
+∀(i, j) ∈R
+fi j ≥qi j xi j
+∀(i, j) ∈R
+	
+(13)
+fi j ≥(yi j −1) min(k,l)∈R {qkl}
+∀(i, j) ∈A\(R ∪
+
+(0, 0′)
+
+)
+(14)
+The ﬁrst set of constraints (13) speciﬁes that the value of the ﬂow on an arc served by
+the vehicle should be at least equal to its demand, while the second set (14) relates the
+ﬂow in deadheading arcs with the number of times they are deadheaded. Note that the
+ﬁrst inequality in set (13) takes into account that a task may also be deadheaded.
+We next present compact formulations for single-vehicle mixed capacitated arc
+routing problems with proﬁts. Basically all of them share the set of feasible solutions
+deﬁned by (1)–(14). They differ accordingly to their objective functions and/or some
+additional constraints.
+Three main problems are discussed next: the proﬁtable, the orienteering and the
+prize-collecting mixed capacitated arc routing problems. As will be noted in Sect. 4,
+their associated polynomial models provide quite reasonable computational results.
+3.1.1 Proﬁtable mixed capacitated arc routing problem
+We consider ﬁrst the proﬁtable mixed capacitated arc routing problem (PMP), which
+tries to ﬁnd a single-vehicle tour maximizing the difference between the total net
+proﬁt and the total deadheading cost. A valid formulation for the PMP, denoted by F1,
+consists of constraints (1)–(14) and the following objective function:
+max
+⎛
+⎝
+(i, j)∈R
+pi j xi j −
+
+(i, j)∈A
+ci j yi j
+⎞
+⎠
+(15)
+Note that the objective function includes a ﬁxed term associated with the total net
+proﬁt of the mandatory tasks. Since the model has a polynomial number of variables
+and constraints, it can be directly solved with an ILP package like CPLEX.
+Associated with each optional task a penalty that is paid if the task is not served
+could also be considered. The penalised version of the proﬁtable mixed problem would
+consist of maximizing an objective function including the total net proﬁt, the total
+deadheading cost and the penalties paid for the not served optional tasks.
+3.1.2 Orienteering mixed arc routing problem
+In the orienteering mixed capacitated arc routing problem (OMP), the objective is to
+ﬁnd a tour maximizing the total collected (gross) proﬁt. In this case, no deadheading
+123
+
+252
+E. Benavent et al.
+costs are considered. However, the tour, in addition to the vehicle capacity constraint,
+has to satisfy a time limit that is denoted by L.
+Thus, to model the problem (OMP), we consider the objective function:
+max
+
+(i, j)∈R
+p′
+i j xi j,
+(16)
+where p′
+i j denotes the gross proﬁt associated with servicing task (i, j) ∈R. The
+following constraint, guaranteeing that the time limit is not exceeded, has to be added:
+
+(i, j)∈R
+ts
+i j xi j +
+
+(i, j)∈A
+td
+i j yi j ≤L
+(17)
+This new model, with objective function (16) and constraints (1) to (14) and (17), is
+denoted by F1O.
+Note that, as for the capacity constraints, the time limit constraints (17) may be
+written by means of ﬂow inequalities using new ﬂow variables gi j associated with
+each arc (i, j) ∈A\
+
+(0, 0
+′)
+
+:
+
+j:( j,i)∈A
+g ji −
+
+j:(i, j)∈A
+gi j =
+
+j:( j,i)∈R
+ts
+ji x ji +
+
+j:( j,i)∈A
+td
+ji y ji
+∀i ∈N\
+
+0
+′
+(18)
+g0′0 =
+
+(i, j)∈R
+ts
+i j xi j +
+
+(i, j)∈A
+td
+i j yi j
+(19)
+gi j ≤L(xi j + yi j)
+∀(i, j) ∈A\
+
+(0, 0
+′)
+
+(20)
+gi j ≥0
+∀(i, j) ∈A\
+
+(0, 0′)
+
+(21)
+In the simpler case in which no demands are considered, we have the uncapacitated
+orienteering problem (UOMP), which can be formulated by using the objective func-
+tion (16), constraints (1)–(6), (10), (12) and (18)–(21) and the following constraints
+that replace (13) and (14):
+gi j ≥ts
+i j xi j + td
+i j yi j
+∀(i, j) ∈R
+(22)
+gi j ≥td
+i j yi j + (yi j −1) min
+(k,l)∈A
+
+td
+kl
+
+gi j ≥td
+i j yi j
+	
+∀(i, j) ∈A\(R ∪
+
+(0, 0′)
+
+)
+(23)
+This formulation is denoted by F1OU.
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+253
+3.1.3 Prize-collecting mixed capacitated arc routing problem
+In the prize-collecting mixed capacitated arc routing problem (PCMP), the objective
+is to ﬁnd a tour minimizing the total traversing cost. However, in this case the tour has
+to collect a minimum amount of proﬁt ¯P.
+Thus, to model the problem (PCMP), we consider the objective function:
+min
+
+(i, j)∈A
+ci j yi j
+(24)
+The following constraint, guaranteeing that the minimum amount of proﬁt is collected,
+has to be added:
+
+(i, j)∈R
+pi j xi j ≥¯P
+(25)
+This new model, with objective function (24) and constraints (1) to (14) and (25), is
+denoted by F1PC.
+Table 2 summarizes the models proposed before for single vehicle mixed capaci-
+tated arc routing problems with proﬁts. Next, we extend these models to the case of
+multiple vehicles.
+3.2 Multiple vehicles mixed capacitated arc routing problems with proﬁts
+The previously described models are here extended to the case where K vehicles are
+considered. Feasible solutions for a multiple-vehicle mixed capacitated arc routing
+problem with proﬁts (K-MP) consist of K tours, satisfying the capacity constraints,
+servicing all the mandatory tasks and some of the optional ones. Like in the single
+vehicle case, this section begins with the characterization of the feasible solutions by
+means of a compact model that uses ﬂow variables. Then, the different proﬁt problems
+for the multiple-vehicle case are presented. Basically all these problems have a similar
+set of feasible solutions and differ in their objective functions and/or in some additional
+constraints.
+Again, the use of ﬂow variables enables the description of feasible vehicle tours
+with a polynomial number of variables and constraints (see Gouveia et al. 2010). For
+k = 1, . . . , K, we deﬁne:
+• xk
+i j =
+1 if(i, j) ∈R is served in tour k
+0 otherwise
+∀(i, j) ∈R;
+• yk
+i j is the number of times that arc (i, j) ∈A is deadheaded during tour k;
+• f k
+i j is the ﬂow traversing arc (i, j) ∈A\
+
+(0, 0′)
+
+related with the remaining
+demand in tour k or in a subtour of it.
+The set of feasible solutions is deﬁned by
+
+j:(i, j)∈A
+yk
+i j +
+
+j:(i, j)∈R
+xk
+i j =
+
+j:( j,i)∈A
+yk
+ji +
+
+j:( j,i)∈R
+xk
+ji
+∀i ∈N, k = 1, . . . , K
+(26)
+123
+
+254
+E. Benavent et al.
+K
+
+k=1
+xk
+i j = 1
+∀(i, j) ∈AM
+(27)
+K
+
+k=1
+xk
+i j ≤1
+∀(i, j) ∈AO
+(28)
+K
+
+k=1
+(xk
+i j + xk
+ji) = 1
+∀(i, j) ∈EM
+(29)
+K
+
+k=1
+(xk
+i j + xk
+ji) ≤1
+∀(i, j) ∈EO
+(30)
+yk
+0′0 ≤1
+k = 1, . . . , K
+(31)
+
+j:( j,i)∈A
+f k
+ji −
+
+j:(i, j)∈A
+f k
+i j =
+
+j:( j,i)∈R
+q ji xk
+ji
+∀i ∈N\
+
+0′
+;
+k = 1, . . . , K
+(32)
+f k
+0′0 =
+
+(i, j)∈R
+qi j xk
+i j
+k = 1, . . . , K
+(33)
+f k
+i j ≤W(yk
+i j + xk
+i j)
+∀(i, j) ∈A\
+
+(0, 0′)
+
+;
+k = 1, . . . , K
+(34)
+xk
+i j ∈{0, 1}
+∀(i, j) ∈R;
+k = 1, . . . , K
+(35)
+f k
+i j ≥0
+∀(i, j) ∈A\
+
+(0, 0′)
+
+;
+k = 1, . . . , K
+(36)
+yk
+i j ≥0, integer
+∀(i, j) ∈A;
+k = 1, . . . , K
+(37)
+Conditions (26) guarantee the continuity of the tours at each node; the service
+of each mandatory arc and edge is guaranteed by (27) and (29), respectively, while
+optional services are allowed by (28) and (30); (31) ﬁxes node 0′ as the starting point
+of each tour and, jointly with (33) and (34), ensures that vehicles capacity is satisﬁed;
+(32) and (33) are the ﬂow conservation constraints, which together with the linking
+constraints (34) guarantee the connectivity of the tours. Conditions (34) imply that a
+ﬂow variable is positive only if the corresponding arc is traversed by the tour, being
+then essential to ensure connectivity, as stated above.
+This set of feasible solutions is characterized with only K(2 |A| −1 + |R|) vari-
+ables and K(2 |N| + |A|) + B constraints.
+Additional constraints
+The above set of constraints has been strengthened by the addition of some valid
+inequalities, some of which are proposed in Gouveia et al. (2010). Let us denote by
+QM the total mandatory demand, i.e. QM = 
+(i, j)∈AM∪EM qi j. Then the following
+inequality, which states the minimum number of vehicles that have to be used to serve
+all the mandatory demand, is valid.
+K
+
+k=1
+yk
+0′0 ≥QM
+W
+(38)
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+255
+The following constraints, similar to the ones described for the single vehicle case,
+are also valid.
+f k
+i j ≥qi j xk
+i j + (yk
+i j −1) min
+(r,l)∈R {qrl} ∀(i, j) ∈R,
+∀k
+f k
+i j ≥qi j xk
+i j
+∀(i, j) ∈R,
+∀k
+	
+(39)
+f k
+i j ≥(yk
+i j −1) min
+(r,l)∈R {qrl} ∀(i, j) ∈A\(R ∪{(0, 0
+′)}), ∀k
+(40)
+Note that the multiple-vehicle formulations are highly symmetric since any permuta-
+tion of the vehicle tours deﬁnes different solutions that are in fact identical in practice.
+The existence of this kind of alternative integer solutions, only differing in their vehicle
+indices, may lead to huge computing times. The next set of constraints breaks some
+of these symmetries and is used for the instances with no mandatory tasks:
+yk
+0′0 ≥yk+1
+0′0
+k = 1, . . . , K −1
+(41)
+In a solution with P < K tours, these inequalities remove all the equivalent solutions
+with vehicle indices greater than P.
+In the presence of mandatory tasks, and to avoid at least partially this sym-
+metry, we introduce the following set of constraints that have also been used in
+Benavent et al. (2009). Let (l1, . . . ,lS) be any ordering of the demand links, where
+S = Min {K; |AM| + |EM| + |AO| + |EO|}. The idea is to force the numbering of
+vehicles to follow the numbering of the smallest index link they service, which can be
+done as follows:
+z1
+l1 = 1 if l1 ∈AM ∪EM
+zk
+li ≤
+i−1
+
+j=1
+zk−1
+l j
+k = 2, . . . , S; i ≥2
+zk
+li = 0 k = i + 1, . . . , S; i = 1, . . . , S −1,
+(42)
+where zk
+li = xk
+li if li ∈AM ∪AO, and zk
+li = xk
+jt + xk
+t j if li = ( j, t) ∈EM ∪EO.
+Vehicle 1 will serve link l1 if it is a mandatory link. The second set of constraints
+states that if a demand link li is served by vehicle k, then at least one “previous” link
+l j, j = 1, . . . , i −1, has to be served by vehicle k −1. The last set of constraints
+prevents links li, i = 1, . . . , S −1 from being served by vehicles with indices greater
+than i.
+We have noticed that the value of the above inequalities depends to a great extent
+on the ordering chosen for the demand links. A good choice is as follows: the ﬁrst
+mandatory link is the farthest one from the depot; the second is the farthest one from
+both the depot and the ﬁrst link; and so on.
+We have also tried a different set of symmetry breaking constraints (see Sherali
+and Smith 2001; Degraeve et al. 2002; Jans 2009). Again, let us suppose that the links
+are ordered (l1, . . . ,lS). We can use the lexicographic ordering constraints to assign a
+unique number to each possible set of demand links for a tour and order the vehicles
+according to their assigned number.
+123
+
+256
+E. Benavent et al.
+The new set of symmetry breaking constraints is
+S
+
+i=1
+2S−izk
+li ≥
+S
+
+i=1
+2S−izk+1
+li
+k = 1, . . . , K −1
+(42b)
+Preliminary computational experiments with a subset of instances have shown that
+constraints (42) are more effective than (42b), so they are the ones chosen in all the
+strengthened multiple vehicle models with proﬁts that are presented next.
+3.2.1 Multiple vehicles proﬁtable mixed capacitated arc routing problem
+In the multiple-vehicle proﬁtable mixed capacitated arc routing problem, denoted by
+K-PMP, the objective function represents the total net proﬁt collected minus the dead-
+heading cost. Thus, a valid formulation for the K-PMP, referred as FK, incorporates
+constraints (26)–(42) and the following objective:
+max
+K
+
+k=1
+⎛
+⎝
+(i, j)∈R
+pi j xk
+i j −
+
+(i, j)∈A
+ci j yk
+i j
+⎞
+⎠
+(43)
+Note that inequalities (31) imply that if a vehicle is used, then it leaves the artiﬁcial
+depot only once. This would allow the addition to the model of ﬁxed costs associated
+with the use of the vehicles.
+3.2.2 Team orienteering mixed capacitated arc routing problem
+The team orienteering mixed capacitated arc routing problem (K-OMP) generalizes
+the orienteering problem to the case of multiple vehicles. The aim is to ﬁnd a set of
+tours maximizing the total collected (gross) proﬁt, satisfying the capacity constraints
+and a time limit L for each vehicle tour. A similar problem, deﬁned on an undirected
+graph and without mandatory tasks, is studied in Archetti et al. (2010).
+The objective function of the K-OMP is
+max
+K
+
+k=1
+⎛
+⎝
+(i, j)∈R
+p′
+i j xk
+i j
+⎞
+⎠,
+(44)
+where p′
+i j denotes the gross proﬁt of servicing task (i, j) ∈R. The constraints,
+guaranteeing that the time limit per tour is not exceeded, are
+
+(i, j)∈R
+ts
+i j xk
+i j +
+
+(i, j)∈A
+td
+i j yk
+i j ≤L
+k = 1, . . . , K
+(45)
+This new model, with (44) subject to (26) to (42), and (45), is denoted by FKO.
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+257
+As in the single vehicle case, the time limit constraints (45) can be replaced by the
+following new ﬂow inequalities that have to be added for each k = 1, . . . , K:
+
+j:( j,i)∈A
+gk
+ji −
+
+j:(i, j)∈A
+gk
+i j =
+
+j:( j,i)∈R
+ts
+ji xk
+ji +
+
+j:( j,i)∈A
+td
+ji yk
+ji
+∀i ∈N\
+
+0′
+(46)
+gk
+0′0 =
+
+(i, j)∈R
+ts
+i j xk
+i j +
+
+(i, j)∈A
+td
+i j yk
+i j
+(47)
+gk
+i j ≤L(xk
+i j + yk
+i j)
+∀(i, j) ∈A\
+
+(0, 0
+′)
+
+(48)
+gk
+i j ≥0
+∀(i, j) ∈A\
+
+(0, 0′)
+
+(49)
+If no demands are considered, a simpler uncapacitated model, denoted by FKOU, can
+be deﬁned. It consists of the objective function (44), constraints (26) to (31), (35),
+(37), (41), (42), (46) to (49), and, as in the single-vehicle case, constraints (39) and
+(40) are adapted and written with ﬂow variables gk
+i j.
+3.2.3 Multiple-vehicle prize-collecting mixed capacitated arc routing problem
+The multiple-vehicle prize-collecting mixed capacitated arc routing problem (K-
+PCMP) generalizes the prize-collecting problem to the case of multiple vehicles.
+It consists of ﬁnding a set of K tours minimizing the total cost, while a minimum
+amount of proﬁt ¯P is collected by the set of vehicles. There is no published paper on
+this problem in the literature on arc routing; however, the corresponding problem in
+node routing has been studied for instance in Tang and Wang (2006) and Stenger et al.
+(2013). In the ﬁrst paper, a prize-collecting vehicle routing problem derived from the
+hot rolling production of the iron and steel industry is considered, while an application
+in small package shipping is studied in the second.
+Thus, to model the problem (K-PCMP), we consider the objective function:
+min
+K
+
+k=1
+
+(i, j)∈A
+ci j yk
+i j
+(50)
+and the following constraint guaranteeing that at least a proﬁt ¯P is collected:
+K
+
+k=1
+
+(i, j)∈R
+pi j xk
+i j ≥¯P
+(51)
+This new model, with objective function (50) and constraints (26) to (42) and (51), is
+denoted by FKPC.
+3.2.4 Aggregate relaxations of multiple-vehicle models
+The number of variables and constraints of multiple-vehicle formulations, although
+polynomial, is too large. This makes difﬁcult to solve them optimally. The aggre-
+123
+
+258
+E. Benavent et al.
+Table 2 Problems and instances
+Line
+Problem
+Special characteristics
+Objective function
+Constraints
+Model
+Instances
+1
+PMP
+K = 1
+(15)
+(1)–(14)
+F1
+palba; pmadri; palda
+2
+OMP
+K = 1
+(16)
+(1)–(14), (17)
+F1O
+oalba; omadri; oalda
+3
+UOMP
+K = 1 uncapacitated
+(16)
+(1)–(6), (10), (12), (18)-(23)
+F1OU
+uoalba; uomadri; uoalda
+4
+PCMP
+K = 1
+(24)
+(1)–(14), (25)
+F1PC
+pcalba; pcmadri; pcalda
+5
+K-PMP
+–
+(42b)
+(26)–(42)
+FK
+pmval
+6
+K-PMP relaxation
+–
+Agg (43)
+Agg (26)–Agg (40)
+Agg(FK)
+pmval
+7
+K-OMP
+–
+(44)
+(26)–(42), (45)
+FKO
+tval; toval
+8
+K-OMP relaxation
+–
+Agg (44)
+Agg (26)–Agg (40), Agg (45)
+Agg(FKO)
+tval; toval
+9
+K-UOMP
+Uncapacitated
+(44)
+(26)–(31), (35), (37),
+(39)–(42),(46)–(49)a
+FKOU
+thertz
+10
+K-UOMP relaxation
+Uncapacitated
+Agg (44)
+Agg (26)–Agg (31), Agg (35),
+Agg (37), Agg (39)–Agg (40),
+Agg (46)–Agg (49)a
+Agg(FKOU)
+thertz
+11
+K-PCMP
+–
+(50)
+(26)–(42), (51)
+FKPC
+Kpcalba; Kpcmadri; Kpcalda
+12
+K-PCMP relaxation
+–
+Agg (50)
+Agg (26)–Agg (40), Agg (51)
+Agg(FKPC)
+Kpcalba; Kpcmadri; Kpcalda
+a (39)–(40) should be rewritten using ﬂow variables gk
+i j
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+259
+gate versions of these formulations provide valid relaxations that can be used to get
+reasonable bounds in short computing times. These aggregate formulations are next
+presented and discussed. We deﬁne xi j = K
+k=1 xk
+i j, ∀(i, j) ∈R; yi j = K
+k=1 yk
+i j
+and fi j = K
+k=1 f k
+i j, ∀(i, j) ∈A. Note that xi j takes value one, if and only if, task
+(i, j) is served by any vehicle, while yi j is the total number of times that arc (i, j) is
+deadheaded.
+The aggregate formulation of FK#, denoted Agg(FK#), is obtained by adding each
+family of constraints (26) to (40) for all vehicles and using the above deﬁned aggre-
+gate variables. The models thus obtained are analogous to the ones presented for the
+single vehicle cases. Note that the aggregate models are non-valid formulations for
+the original problems.
+It can be shown (see Gouveia et al. 2010) that the linear programming relaxation
+bounds of the aggregate and original models are equal. In fact, from the variables
+deﬁnition in Agg(FK) it is easy to transform a feasible solution of the linear relaxation
+of FK, LFK, into a feasible solution of the linear relaxation of Agg(FK) with the same
+objective value. And vice-versa, given a feasible solution of the linear relaxation of
+Agg(FK), ¯xi j, ¯yi j, ¯fi j, a feasible solution of LFK with the same objective value may
+also be deﬁned by xk
+i j = ¯xi j
+K , yk
+i j = ¯yi j
+K , f k
+i j =
+¯fi j
+K .
+Multiple vehicles models, including the corresponding relaxations, are summarized
+in Table 2, lines 5–12.
+4 Computational results
+The proposed models are evaluated over some benchmark instances from the literature
+and others that have been generated for those problems that were not previously
+studied. The computational results were obtained using CPLEX 12.4, with default
+settings, in a computer with 2 AMD Opteron 6172 processors (24 cores) at 2.1 GHz
+and with 64 GB RAM. A time limit of 1 h was established. When an integer program
+is being solved and the time limit is reached without completing the branch-and-
+bound procedure, CPLEX 12.4 provides the best bounds that are computed taking
+into account all the live nodes of the branch-and-bound tree.
+4.1 Data instances
+Single-vehicle models are tested on instances generated from the sets of instances
+alba, madri and alda proposed by Corberán et al. (2005) for the mixed general routing
+problem (MGRP). The MGRP consists of ﬁnding a minimum cost tour traversing a
+given subset of required edges and arcs (ER ∪AR) and visiting a given subset of
+required vertices (VR). Multiple-vehicle models are tested on instances based on the
+ones used in Belenguer et al. (2006) and Gouveia et al. (2010) for the mixed CARP,
+and on the ones proposed in Archetti et al. (2010) and Archetti et al. (2013) for the
+team orienteering arc routing problem.
+123
+
+260
+E. Benavent et al.
+The above instances are modiﬁed, when necessary, to generate instances for all the
+problems under study. The additional data required are generated as follows. For each
+required link (i, j) in the original data sets
+(i) Mandatory/optional links: Let r be a random number between 0 and 1. Given a
+value for m ∈{0.25; 0.5; 0.75}, each required link is made mandatory if r < m,
+and optional otherwise. A different instance is generated for each value of m.
+(ii) Net proﬁt: pi j = ⌊¯c + ui j⌋, where ¯c is the average cost of the links, and ui j is a
+random number generated in the interval (0.8ci j; 1.5ci j).
+(iii) Gross proﬁt: p′
+i j = pi j + ci j.
+(iv) Demand: qi j is a random integer number in (0.75ci j; 1.5ci j).
+(v) Deadheading and service times (in min): we compute ﬁrst a speed vi j as a random
+number in (20; 50), and then
+deadheading time : td
+i j =
+ci j
+vi j
+60
+
+;
+service time : ts
+i j = γi jtd
+i j, where :
+γi j =
+⎧
+⎨
+⎩
+2 if qi j ≤0.9Q AM
+3 if 0.9Q AM < qi j < 1.1Q AM
+4 if qi j ≥1.1Q AM
+and Q AM =
+QM
+|AM + EM| .
+Moreover, the vehicle capacity, in the single-vehicle models (K = 1), and the time
+limit are generated as follows:
+(vi) Vehicle capacity for single-vehicle problems: W = ⌈QM + αQO⌉, with QO
+representing the total optional demand and α ∈{0.50; 0.80}.
+(vii) Time limit per tour: L was set to 95 % of the time spent by a feasible solution
+computed with F1.
+4.2 Results for single-vehicle problems
+Single-vehicle models are tested on instances based on the benchmark MGRP ones
+of Corberán et al. (2005). The authors generated three sets of MGRP instances, alba,
+alda and madri, from the street networks of three Spanish towns (Albaida, Aldaya and
+Madrigueras). The original data has the following characteristics:
+• alba: |N| = 116; |E ∪A| = 174; 7 ≤|ER| ≤148; 3 ≤|AR| ≤74.
+• madri: |N| = 196; |E ∪A| = 316; 13 ≤|ER| ≤250; 2 ≤|AR| ≤158.
+• alda: |N| = 214; |E ∪A| = 351; 0 ≤|ER| ≤209; 0 ≤|AR| ≤118.
+Since in the MGRP there are required nodes that have to be necessarily visited and
+this is not the case in our models, each v ∈VR not incident with a required link is
+here replaced by the arc task (v′, v′′), each arc with end node v is replaced by an arc
+entering at v′, and arcs leaving v are replaced by arcs leaving v′′, while each edge
+(v, w) incident with v is substituted by two arcs (v′′, w) and (w, v′). The cost of arc
+(v′, v′′), cv′v′′, is a random number generated in the interval (0.8¯c; 1.2¯c), where ¯c
+represents the average cost of all the links in the original graph.
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+261
+Table 3 Instance characteristics (average values)
+Name
+#
+|V |
+|A|
+|AM|
+|AO|
+|E|
+|EM|
+|EO|
+palba25
+25
+146.8
+165.7
+14.4
+45.6
+76.8
+14.2
+44.2
+palba50
+25
+146.8
+165.7
+30.4
+29.6
+76.8
+28.9
+29.6
+palba75
+25
+146.8
+165.7
+44.8
+15.2
+76.8
+43.9
+14.5
+pmadri25
+25
+243.2
+292.6
+28.7
+79.8
+131.6
+24.1
+72.3
+pmadri50
+25
+243.2
+292.6
+55.8
+52.8
+131.6
+47.6
+48.7
+pmadri75
+25
+243.2
+292.6
+81.7
+26.8
+131.6
+72.5
+23.9
+palda25
+31
+263.7
+320.5
+27.3
+83.0
+152.1
+27.8
+79.2
+palda50
+31
+263.7
+320.5
+54.5
+55.8
+152.1
+54.2
+52.7
+palda75
+31
+263.7
+320.5
+81.5
+28.8
+152.1
+80.8
+26.2
+Table 3 shows the main characteristics of the generated sets of instances. Their
+names can be found in the ﬁrst column and include the percentage of mandatory links
+among the required ones in the original instances. For example, palba25 denotes the set
+of instances gathered from set alba by generating proﬁts and randomly selecting 25 %
+of the required links in the original instance as mandatory. The number of instances
+(#) and the average values of the characteristics in each set of instances are shown in
+the other columns. Moreover, for each instance, two different vehicle capacities are
+considered by varying α ∈{0.5; 0.8} in (vi). The name of the instance sets will also
+include this characteristic; thus palba25_50 and palba25_80, for example, denote the
+set of instances in palba25 where vehicle capacity is obtained using α = 0.5 and
+α = 0.8, respectively, in (vi).
+4.2.1 Proﬁtable mixed capacitated arc routing problem
+The computational results obtained for the proﬁtable mixed capacitated arc routing
+problem on the above sets of instances are shown in Table 4. Third column presents
+the average percentage values of the optional demand effectively collected in the cor-
+responding best solution found. Average gap values (in percentage) for model F1 are
+displayed in column 4. Gap values are computed from the differences between the
+best upper bounds found by the CPLEX branch-and-bound procedure and the opti-
+mal values, if known, or the proﬁt of the best feasible solution found. Last column
+shows the average gap values for the upper bounds obtained with the linear relaxation
+of the model, which is denoted by LF1. Column headed by #OS indicates the num-
+ber of instances solved to optimality with the integer model. Finally, last three rows
+present the minimum, average and maximum computing times for F1 and LF1 in all
+the instances.
+As may be seen in Table 4, model F1 is able to solve to optimality most of the
+instances (438 out of 486) in small computing times, which proves the effectiveness of
+this model in solving medium size instances. Concerning linear relaxation LF1, it can
+be seen that it is very less time consuming, but the upper bounds are not good in general.
+123
+
+262
+E. Benavent et al.
+Table 4 Results for the proﬁtable mixed capacitated arc routing problem (PMP)
+Name
+#
+F1
+LF1
+%QO
+Gap (%)
+#OS
+Gap (%)
+palba25_80
+25
+79.7
+0.0
+24
+26.2
+palba50_80
+25
+79.3
+0.0
+25
+28.0
+palba75_80
+25
+77.7
+0.0
+25
+31.7
+pmadri25_80
+25
+79.9
+0.4
+21
+15.2
+pmadri50_80
+25
+79.7
+0.2
+21
+15.4
+pmadri75_80
+25
+79.0
+0.1
+21
+16.4
+palda25_80
+31
+79.9
+0.1
+24
+10.4
+palda50_80
+31
+79.9
+0.1
+25
+10.9
+palda75_80
+31
+79.7
+0.0
+27
+10.8
+palba25_50
+25
+49.9
+0.0
+23
+38.4
+palba50_50
+25
+49.9
+0.0
+25
+42.3
+palba75_50
+25
+49.6
+0.0
+25
+39.3
+pmadri25_50
+25
+50.0
+0.4
+23
+20.2
+pmadri50_50
+25
+49.9
+0.2
+23
+19.0
+pmadri75_50
+25
+49.8
+0.1
+23
+18.8
+palda25_50
+31
+50.0
+0.3
+25
+13.9
+palda50_50
+31
+50.0
+0.3
+29
+14.0
+palda75_50
+31
+49.9
+0.2
+29
+12.5
+Total/average
+486
+0.1
+438
+20.6
+F1
+LF1
+CPU time (s)
+Min
+1.0
+0.01
+Av
+608.0
+0.05
+max
+3,600.0
+0.16
+4.2.2 Orienteering mixed arc routing problem
+The sets of instances oalba, omadri and oalda, used to test the capacitated model
+proposed for the orienteering mixed arc routing problem, have been generated from the
+sets palba, pmadri and palda, respectively, as follows: First, the net proﬁt of each task
+is substituted by the gross proﬁt computed as in (iii). Then, service and deadheading
+times for the arcs are computed as in (v), and (vii) is used to calculate the time limit
+L. The total number of instances in Table 5 (and in Table 6 for the uncapacitated case)
+reduces to 476 due to infeasibilities caused by the time limit constraint.
+The results included in Table 5 show that most of the instances are solved to opti-
+mality (406 of 476). Note that the bounds provided by the linear relaxation are quite
+good in this model.
+To evaluate the uncapacitated orienteering mixed arc routing model F1OU we
+consider the instance sets uoalba, uomadri and uoalda that are obtained from oalba,
+omadri and oalda just by ignoring the arc demands and the vehicle capacity.
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+263
+Table 5 Results for the orienteering mixed capacitated arc routing problem (OMP)
+Name
+#
+F1O
+LF1O
+%QO
+Gap (%)
+#OS
+Gap (%)
+oalba25_80
+25
+76.4
+0.0
+24
+4.9
+oalba50_80
+25
+72.5
+0.0
+24
+4.8
+oalba75_80
+25
+58.9
+0.0
+25
+5.2
+omadri25_80
+25
+77.1
+0.1
+18
+3.4
+omadri50_80
+25
+73.5
+0.1
+20
+3.5
+omadri75_80
+24
+63.1
+0.1
+20
+3.8
+oalda25_80
+31
+78.3
+0.2
+24
+2.9
+oalda50_80
+31
+75.1
+0.2
+25
+3.3
+oalda75_80
+31
+65.0
+0.3
+27
+3.9
+oalba25_50
+25
+48.5
+0.0
+23
+6.4
+oalba50_50
+20
+43.6
+0.0
+24
+6.6
+oalba75_50
+25
+30.0
+0.0
+20
+7.0
+omadri25_50
+25
+48.4
+0.3
+20
+5.0
+omadri50_50
+25
+44.8
+0.4
+20
+5.3
+omadri75_50
+23
+29.1
+0.1
+22
+6.3
+oalda25_50
+31
+49.1
+0.5
+18
+4.3
+oalda50_50
+31
+45.8
+0.2
+26
+5.0
+oalda75_50
+29
+32.1
+0.5
+26
+6.4
+Total/average
+476
+0.2
+406
+4.8
+F1O
+LF1O
+CPU time (s)
+Min
+0.2
+0.01
+Av
+768.9
+0.09
+Max
+3,600.0
+0.24
+Table 6 shows the results obtained for the uncapacitated model. It is interesting to
+note that the results for this model are slightly worse than for the capacitated one. In
+this case only 380 out of 476 instances have been solved to optimality.
+4.2.3 Prize-collecting mixed capacitated arc routing problem
+We have deﬁned ¯P (the minimum proﬁt to be collected) as the proﬁt of the mandatory
+links plus a percentage of the proﬁt of the optional links. Two values for this percentage
+are used: (i) 25 % or (ii) 50 %. Table 7 contains the results obtained by this model
+for both values of ¯P. As it can be seen, the linear relaxation bounds are very weak.
+However, almost all the instances have been optimally solved (453 out of 486 instances
+in which ¯P includes a 25 % of the optional proﬁt, and 439 out of 486 instances with
+50 %).
+123
+
+264
+E. Benavent et al.
+Table 6 Results for the uncapacitated orienteering mixed CARP (UOMP)
+Name
+#
+F1OU
+LF1OU
+%QO
+Gap (%)
+#OS
+Gap (%)
+uoalba25_80
+25
+76.6
+0.0
+23
+6.6
+uoalba50_80
+25
+72.5
+0.0
+25
+6.2
+uoalba75_80
+25
+59.4
+0.0
+25
+6.6
+uomadri25_80
+25
+77.1
+0.3
+17
+4.4
+uomadri50_80
+25
+73.4
+0.3
+19
+4.2
+uomadri75_80
+23
+63.3
+0.2
+20
+4.4
+uoalda25_80
+31
+78.4
+0.6
+19
+4.1
+uoalda50_80
+31
+74.8
+0.5
+24
+4.1
+uoalda75_80
+31
+64.6
+0.5
+22
+4.4
+uoalba25_50
+25
+49.6
+0.0
+24
+12.5
+uoalba50_50
+20
+43.8
+0.0
+25
+11.4
+uoalba75_50
+25
+31.8
+0.0
+20
+10.2
+uomadri25_50
+25
+49.3
+0.6
+20
+8.3
+uomadri50_50
+25
+44.7
+0.7
+21
+7.7
+uomadri75_50
+23
+30.9
+0.2
+19
+7.5
+uoalda25_50
+31
+50.2
+1.0
+14
+7.4
+uoalda50_50
+31
+45.8
+0.7
+21
+7.4
+uoalda75_50
+30
+30.1
+1.3
+22
+8.2
+Total/average
+476
+0.4
+380
+6.9
+F1OU
+LF1OU
+CPU time (s)
+Min
+1.0
+0.03
+Av
+937.4
+0.11
+Max
+3,600.0
+0.33
+4.3 Results for multiple vehicle problems
+The performance of the multiple vehicle proﬁtable model is analysed using instances
+pmval, generated from the mval ones used in Belenguer et al. (2006) and Gouveia
+et al. (2010) for the mixed CARP. Team orienteering models are studied on the tval,
+toval and thertz instances generated by Archetti et al. (2010) and Archetti et al. (2013)
+from the val instances of Benavent et al. (1992) and the Hertz instances Hertz et al.
+(1999). The same instances used for evaluate the performance of the prize-collecting
+mixed CARP have been used for the multiple-vehicle case. Additional data for the
+above instances have been generated as described in Sect. 4.1.
+The following tables, showing the results obtained with the multiple vehicle models,
+also include those obtained with the aggregate models which, although not valid,
+provide good upper bounds in short computing times.
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+265
+Table 7 Results for the prize-collecting mixed CARP (PCMP)
+Name
+#
+25 % of optional proﬁt
+50 % of optional proﬁt
+F1OU
+LF1OU
+F1OU
+LF1OU
+%QO
+Gap (%)
+#OS
+Gap (%)
+%QO
+Gap (%)
+#OS
+Gap (%)
+pcalba25_80
+25
+49.4
+0.0
+25
+58.8
+53.4
+0.0
+25
+54.3
+pcalba50_80
+25
+58.6
+0.0
+25
+42.5
+58.7
+0.0
+25
+41.7
+pcalba75_80
+25
+57.9
+0.0
+25
+37.6
+59.1
+0.0
+25
+37.4
+pcmadri25_80
+25
+47.0
+0.3
+23
+40.3
+51.4
+0.3
+22
+39.2
+pcmadri50_80
+25
+54.0
+0.0
+25
+30.4
+55.6
+0.3
+22
+30.0
+pcmadri75_80
+25
+56.9
+0.1
+22
+26.4
+58.1
+0.1
+22
+26.5
+pcalda25_80
+31
+47.3
+1.2
+27
+47.2
+51.7
+0.6
+25
+44.6
+pcalda50_80
+31
+53.3
+0.2
+29
+39.0
+54.3
+0.2
+29
+38.2
+pcalda75_80
+31
+57.4
+0.1
+29
+34.4
+58.7
+0.1
+30
+34.2
+pcalba25_50
+25
+46.3
+0.0
+25
+55.5
+49.4
+0.0
+25
+50.7
+pcalba50_50
+25
+49.4
+0.0
+25
+42.4
+49.6
+0.0
+25
+41.8
+pcalba75_50
+25
+48.0
+0.0
+20
+37.4
+49.0
+0.0
+20
+37.6
+pcmadri25_50
+25
+45.6
+0.5
+23
+39.8
+49.5
+0.3
+23
+39.0
+pcmadri50_50
+25
+48.1
+0.0
+24
+31.0
+49.7
+0.4
+21
+30.7
+pcmadri75_50
+25
+48.0
+0.1
+22
+26.5
+49.5
+0.3
+22
+26.7
+pcalda25_50
+31
+45.5
+1.0
+27
+45.3
+49.4
+0.6
+24
+42.6
+pcalda50_50
+31
+48.7
+0.1
+29
+38.6
+49.2
+0.3
+27
+38.0
+pcalda75_50
+31
+48.6
+0.2
+28
+35.0
+49.2
+0.4
+27
+35.0
+Total/average
+486
+0.2
+453
+39.4
+0.2
+439
+38.3
+F1OU
+LF1OU
+F1OU
+LF1OU
+CPU time (s)
+Min
+0.8
+0.02
+2.0
+0.02
+Av
+421.6
+0.11
+546.9
+0.12
+Max
+3,600.0
+0.66
+3,600.0
+0.63
+4.3.1 Multiple vehicles proﬁtable mixed capacitated arc routing problem
+The main characteristics of the instance sets are shown in Table 8. As in Table 3, their
+names can be found in the ﬁrst column and include the percentage of mandatory links
+among the required ones in the original instances. The number of instances and the
+average values of their characteristics for each set of instances are shown in the other
+columns. Again, for each instance, two different vehicle capacities are considered by
+varying α ∈{0.5; 0.8} in (vi).
+Table 9 shows the computational results obtained for this problem with models FK
+and Agg(FK) on the above sets of instances with a time limit of one hour. The name of
+each set includes the percentage of mandatory demand and the percentage value used
+to compute the vehicles capacity. The second column of Table 9 gives the number of
+instances for which a feasible solution was found. Average gap values (in percentage)
+123
+
+266
+E. Benavent et al.
+Table 8 Instance characteristics (average values)
+Name
+#
+|V |
+|A|
+|AM|
+|AO|
+|E|
+|EM|
+|EO|
+K
+pmval25
+34
+36
+63
+15
+48
+25
+6
+19
+7
+pmval50
+34
+36
+63
+31
+32
+25
+12
+13
+7
+pmval75
+34
+36
+63
+47
+16
+25
+19
+6
+7
+Table 9 Results for the multiple-vehicle proﬁtable mixed capacitated arc routing problem (K-PMP)
+Name
+#FS
+FK
+Agg(FK)
+LFK
+Gap (%)
+#OS
+Gap (%)
+#OV
+Gap (%)
+pmval25_50
+34
+2.79
+3
+2.37
+0
+3.87
+pmval50_50
+32
+2.91
+4
+2.52
+2
+4.00
+pmval75_50
+33
+3.20
+7
+2.73
+4
+4.08
+pmval25_80
+33
+8.07
+2
+7.62
+0
+8.84
+pmval50_80
+33
+4.61
+6
+4.20
+4
+5.41
+pmval75_80
+32
+2.53
+2
+1.97
+2
+3.24
+Total/average
+197
+4.02
+24
+3.58
+12
+4.91
+FK
+Agg(FK)
+LFK
+CPU time (s)
+Min
+245.7
+0.03
+0.07
+Av
+3,339.8
+25.63
+1.14
+Max
+3,600.0
+3,600.0
+4.56
+for models FK, Agg(FK) and LFK (the linear relaxation of FK) are computed as
+(•)−LB
+LB
+×100, where (•) represents the upper bound obtained with the corresponding
+model and LB is the best lower bound obtained from FK. Column headed by #OS
+shows the number of instances solved to optimality. Since model Agg(FK) cannot
+produce feasible solutions, column #OV gives the number of times the optimal value
+was reached with this model.
+The results obtained with Agg(FK) show that this relaxation achieve small gap
+values in short computing times. Finally, the linear relaxation LFK provides quite
+good results relative to the FK results in negligible times. However, the number of
+instances solved to optimality is very small, showing that the multiple-vehicle case is
+much harder than the single-vehicle one. This agrees with the widely accepted opinion
+that multiple-vehicle problems, as the CARP, are extremely difﬁcult.
+In order to study how the number of links per vehicle affects the performance
+of the branch and bound, the computational results have been grouped according to
+this characteristic and to the percentage of mandatory links. The results are shown in
+Table 10, where the second column (“type”) corresponds to the original characteristics
+ofthemvalinstancesproposedbyBelengueretal.(2006)andarerelatedtothedifferent
+capacity of the vehicles (which decreases from type “a” instances through type “d”
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+267
+Table 10 Relationship between the number of links served per vehicle and gap values (K-PMP)
+Name
+Type
+#
+K
+#links
+# links per vehicle
+Gap(%)
+Optional
+Mandatory
+Optional
+Mandatory
+Total
+pmval25
+a
+20
+4.70
+52.65
+19.90
+10.96
+4.18
+15.13
+0.68
+pmval25
+b
+20
+5.70
+50.25
+20.60
+8.67
+3.55
+12.22
+1.64
+pmval25
+c
+20
+9.10
+49.60
+20.80
+6.04
+2.50
+8.54
+5.23
+pmval25
+d
+8
+11.25
+61.25
+26.50
+5.45
+2.34
+7.80
+12.95
+pmval50
+a
+20
+4.70
+33.85
+43.00
+7.04
+9.00
+16.03
+0.45
+pmval50
+b
+20
+5.70
+33.75
+41.10
+5.82
+7.09
+12.91
+1.39
+pmval50
+c
+20
+9.10
+32.15
+42.70
+3.94
+5.12
+9.05
+4.83
+pmval50
+d
+8
+11.38
+43.50
+51.38
+3.84
+4.48
+8.32
+11.66
+pmval75
+a
+20
+4.70
+16.55
+64.20
+3.44
+13.41
+16.85
+0.61
+pmval75
+b
+20
+5.70
+16.00
+63.30
+2.76
+10.91
+13.67
+1.03
+pmval75
+c
+20
+9.10
+16.10
+62.60
+2.01
+7.49
+9.50
+5.76
+pmval75
+d
+8
+11.50
+22.75
+82.25
+1.99
+7.10
+9.09
+12.63
+instances). Columns three to six show the number of instances, the average number
+of vehicles and the average number of optional and mandatory links in each group,
+respectively. Columns 7, 8 and 9 give the average number of optional, mandatory and
+the total number of links serviced by each vehicle in the best solution found with
+model FK. Finally, the last column shows the average gap obtained for each group
+of instances. It can be seen that, as expected, the behaviour of the algorithm is worse
+when the number of links serviced per vehicle decreases. The same conclusion can
+be drawn independently of the percentage of mandatory links to be collected (25, 50,
+75 %).
+4.3.2 Team orienteering mixed capacitated arc routing problem
+Models for the K-OMP are tested with the benchmark instances of Archetti et al.
+(2010) that were generated from the 34 val ones of Benavent et al. (1992). These are
+grouped in two classes:
+tval, containing 102 instances with vehicle capacity equal to 30 and a time limit of
+40, and
+toval, containing 102 instances for which the vehicle capacity ranges from 20 to
+250, and the time limit ranges from 27 to 133.
+Furthermore, instances in each class have been grouped accordingly to their size:
+Group I—24 nodes; Group II—30 to 34 nodes; Group III—40 or 41 nodes; and Group
+IV—50 nodes. There are no mandatory links in these data sets and the number of
+vehicles considered is 2, 3 or 4.
+TheresultsforthesemodelsareshowninTable11.Averagegapvaluesarecomputed
+as (•)−LB
+LB
+× 100, where LB is the value of the best feasible solution obtained with
+model FKO and (•) is the upper bound value under analysis, i.e., for models FKO,
+123
+
+268
+E. Benavent et al.
+Table 11 Results for the team orienteering mixed capacitated arc routing problem (K-OMP)
+Name
+#
+FKO
+Agg(FKO)
+LFKO
+Archetti et al.
+Gap (%)
+#OS
+Gap (%)
+#OV
+Gap (%)
+dif (%)
+#OS
+tval I
+27
+11.88
+25
+11.88
+12
+17.22
+0.12
+18
+tval II
+30
+9.53
+12
+9.60
+3
+13.36
+2.73
+30
+tval III
+21
+8.67
+7
+7.65
+0
+10.43
+3.11
+21
+tval IV
+24
+10.29
+1
+9.71
+0
+12.74
+3.23
+13
+Total/average
+102
+10.15
+45
+9.83
+15
+13.63
+2.23
+82
+toval I
+27
+2.43
+17
+2.24
+10
+4.17
+0.57
+14
+toval II
+30
+4.89
+5
+4.04
+4
+7.06
+2.06
+1
+toval III
+21
+7.68
+1
+6.39
+0
+10.62
+4.14
+3
+toval IV
+24
+14.84
+0
+12.78
+0
+16.66
+9.54
+0
+Total/average
+102
+7.15
+23
+6.10
+14
+9.29
+3.85
+18
+FKO
+Agg(FKO)
+LFKO
+CPU time (s)
+Min
+1.21
+0.07
+0.03
+Av
+2,994.8
+1,503.1
+7.39
+Max
+3,600.0
+3,600.0
+50.9
+Agg(FKO) and for the linear relaxation (LFKO). Columns headed by #OS, for model
+FKO, and by #OV, for model Agg(FKO), show the number of instances solved to
+optimality and the number of times the optimal value was reached with these models,
+respectively.LasttwocolumnscomparetheresultsobtainedwithmodelFKOandthose
+obtained by Archetti et al. (2010). In this last paper, a branch-and-price algorithm and
+several metaheuristics for the K-OMP are presented. Column headed by dif (%) shows
+the average value of LBA−LB
+LB
+× 100, where LBA is the proﬁt of the best solution
+found by any of the algorithms proposed by Archetti et al. (2010), while as before, LB
+stands for the proﬁt of the best solution found with model FKO. Last column shows
+the number of optimal solutions found by the branch-and-price algorithm of Archetti
+et al. (2010) in one hour of CPU time.
+Model FKO is able to optimally solve 45 out of the 102 tval instances and 23 out of
+102 toval instances. In comparison, Agg(FKO) is worse than FKO since, although in
+some cases it gives a better gap, the number of optimal values reached is much lower
+than the number of optimal solutions obtained by FKO. Linear relaxation LFKO is
+solved very quickly but produces large gaps. The comparison with the work of Archetti
+et al. (2010) shows that FKO is able to provide feasible solutions of similar quality for
+the small and medium size instances, despite the fact that the results given by them are
+obtained using not only an exact method but also several metaheuristics. However, it
+can be seen that the Archetti et al. (2010) results are better, in terms of the quality of
+the best solutions found (see column headed by “dif (%)”) and number of optima for
+the larger instances.
+Model FKOU for the uncapacitated team orienteering mixed arc routing problem
+(K-UOMP) is tested on instances proposed by Archetti et al. (2013) for the team
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+269
+Table 12 Results for the uncapacitated team orienteering mixed arc routing problem (K-UOMP)
+Name
+#
+FKOU
+Agg(FKOU)
+LFKOU
+Archetti et al.
+Gap (%)
+#OS
+Gap (%)
+#OV
+Gap (%)
+dif (%)
+#OS
+thertzd00
+81
+6.12
+38
+10.38
+8
+16.30
+1.70
+65
+thertzd25
+50
+2.53
+32
+5.24
+4
+10.35
+0.41
+49
+thertzd50
+38
+1.69
+33
+7.46
+6
+13.95
+0.22
+36
+thertzg00
+81
+5.12
+60
+6.49
+24
+10.98
+0.45
+61
+thertzg25
+58
+1.68
+53
+3.75
+19
+7.72
+0.10
+53
+thertzg50
+56
+1.36
+50
+3.87
+16
+7.73
+0.08
+52
+thertzr00
+58
+1.60
+57
+13.23
+16
+27.03
+0.07
+58
+thertzr25
+57
+1.01
+56
+12.09
+18
+25.67
+0.24
+57
+thertzr50
+58
+1.31
+57
+10.13
+20
+25.52
+0.39
+58
+Total/average
+537
+2.80
+436
+8.18
+131
+16.11
+0.47
+489
+FKOU
+Agg(FKOU)
+LFKOU
+Archetti et al.
+CPU time (s)
+Min
+0.01
+0.02
+0.00
+0.09
+Av
+1,592.41
+130.65
+0.33
+394.9
+Max
+3,600.0
+3,600.0
+6.03
+3,600.0
+orienteering arc routing problem that were generated from those described in Hertz
+et al. (1999). These instances are deﬁned on directed graphs, i.e. there are no edge
+tasks (nor mandatory neither optional). The number of nodes varies from 17 to 55, the
+number of arcs is between 138 and 429, the number of arc tasks ranges from 8 to 24 %
+and the number of vehicles is between 2 and 4. These adapted instances are renamed as
+thertz μσ, where μ ∈{d, g,r} indicates different graph types, and σ ∈{00, 25, 50}
+represents the percentage of mandatory tasks among the total number.
+Results of theuncapacitatedmodels areshowninTable 12. Secondcolumnindicates
+the number of instances for which a feasible solution was found by model FKOU. As
+before, average gap values are computed as (•)−LB
+LB
+×100, where LB is the lower bound
+value obtained with model FKOU and (•) is the upper bound value under analysis.
+Columns headed by #OS, for model FKOU, and by #OV, for model Agg(FKOU),
+show the number of instances solved to optimality and the number of times the optimal
+value was reached with these models, respectively. Last two columns show the results
+obtained with the branch-and-cut algorithm proposed by Archetti et al. (2013). As
+before, column headed by dif (%) is the average value of LBA−LB
+LB
+× 100, where
+LBA is the proﬁt of the best feasible solution found by the branch-and-cut of Archetti
+et al. (2013).
+Note that model FKOU seems to work well, both in the number of optimal solutions
+found and in the average gaps, and it performs similarly to the capacitated model. From
+this table, we may also conclude that the branch-and-cut by Archetti et al. (2013)
+performs better for all the sets of instances tested, although it must be noted that this
+method was specially devised to deal with completely directed instances.
+123
+
+270
+E. Benavent et al.
+4.3.3 Multiple vehicles prize-collecting mixed capacitated arc routing problem
+The instances used to evaluate this model are the ones described in Table 3. The
+number of vehicles has been computed as the total demand of the mandatory and
+optional edges divided by the capacity and rounded up. The minimum proﬁt to be
+collected by the set of vehicles, ¯P, has been calculated as the proﬁt of the mandatory
+links plus a 50 % or a 75 % of the proﬁt of the optional links. Table 13 contains the
+results obtained by this model for both values of ¯P.
+The results shown in Table 13 are very good and similar to those obtained for the
+prize-collecting problem with a single vehicle, but note that the number of vehicles in
+these instances is always two.
+In order to test the model with a greater number of vehicles, we have divided the
+capacity of vehicles by two, thus obtaining the new set of instances shown in Table 14.
+The results presented show that the model FKPC does not work well with a greater
+number of vehicles and that they are worse when the minimum proﬁt to be collected
+increases. Note that the number of instances that were solved to optimality is very
+small, 15 and 6, out of 486, for the two values of ¯P and that the aggregate model and
+the linear relaxation produce bad lower bounds. Note, however, that the model has
+been tested on a set of instances of large size.
+4.4 Final remarks
+Single-commodity ﬂow models provide a general framework for modelling many
+routing problems. However, many of the variants modelled by these ﬂow models are
+node routing problems and not much has been done with such models for arc routing
+problems.
+In this paper, we have provided and evaluated single-commodity ﬂow models for
+several arc routing problems with proﬁts, including the single- and multiple-vehicle
+cases. For all the studied problems, which include some that have been introduced
+here for the ﬁrst time, exact and relaxed models are presented.
+Theperformanceof thesemodels is analysedover alargeset of benchmarkinstances
+derived from some well-known instances in the literature. Whenever possible, results
+obtained by the proposed models when solved with CPLEX are compared with pre-
+vious published ones.
+From the computational results we may conclude that the behaviour of the proposed
+models for the single-vehicle variants is quite good. They succeed in ﬁnding the opti-
+mum of the problems studied, namely proﬁtable (PMP), both orienteering versions
+(OMP and UOMP) and prize-collecting (PCMP). Linear programming relaxations
+produce, in general, better bounds for the orienteering cases. The corresponding aver-
+age CPU times are usually a few seconds.
+Gaps for multiple-vehicle proﬁtable (K-PMP) models are still reasonably good.
+Aggregate relaxations have the same behaviour, ﬁnding better upper bounds in the
+ﬁrst case. Note that, in general, these models provide quite quickly good bounds as
+can be seen by the small CPU time values. Lower bounds for the team orienteering
+capacitated models are very similar to the bounds reported in Archetti et al. (2010) for
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+271
+Table 13 Results for the multiple prize-collecting mixed CARP (K-PCMP)
+Name
+#
+K
+50 % of optional proﬁt
+75 % of optional proﬁt
+FKPC
+Agg(FKPC)
+LFKPC
+FKPC
+Agg(FKPC)
+LFKPC
+%QO
+Gap (%)
+#OS
+Gap (%)
+#OV
+Gap (%)
+%QO
+Gap (%)
+#OS
+Gap (%)
+#OV
+Gap (%)
+Kpcalba25_80
+25
+2
+53.1
+0.0
+25
+0.0
+25
+54.3
+74.9
+0.1
+24
+0.0
+24
+50.8
+Kpcalba50_80
+25
+2
+58.8
+0.0
+25
+0.0
+25
+41.7
+74.5
+0.0
+25
+0.0
+25
+40.9
+Kpcalba75_80
+25
+2
+59.0
+0.0
+25
+0.0
+25
+37.4
+74.7
+0.0
+25
+0.0
+1.0
+38.3
+Kpcmadri25_80
+25
+2
+51.4
+1.6
+17
+0.5
+19
+39.3
+75.1
+1.4
+17
+0.6
+18
+41.6
+Kpcmadri50_80
+25
+2
+55.8
+2.4
+19
+1.0
+19
+30.4
+75.2
+0.8
+20
+0.4
+21
+31.6
+Kpcmadri75_80
+25
+2
+58.5
+0.7
+20
+0.4
+21
+26.7
+75.4
+0.7
+18
+0.3
+20
+27.8
+Kpcalda25_80
+31
+2
+51.3
+2.7
+16
+0.8
+20
+44.8
+75.5
+1.5
+18
+0.6
+21
+46.4
+Kpcalda50_80
+31
+2
+54.8
+1.8
+17
+0.5
+22
+38.5
+75.8
+1.4
+20
+0.6
+21
+39.7
+Kpcalda75_80
+31
+2
+58.4
+0.5
+26
+0.2
+27
+34.3
+75.4
+0.3
+26
+0.1
+28
+35.0
+Kpcalba25_50
+25
+2
+49.3
+0.1
+24
+0.0
+24
+50.7
+72.5
+7.3
+15
+25.0
+0
+63.3
+Kpcalba50_50
+25
+2
+49.7
+0.2
+24
+0.0
+24
+42.1
+72.7
+5.8
+18
+16.2
+0
+53.0
+Kpcalba75_50
+25
+2
+49.0
+0.0
+25
+0.0
+25
+37.9
+72.4
+2.1
+20
+7.1
+0
+46.3
+Kpcmadri25_50
+25
+2
+49.5
+3.5
+15
+1.6
+15
+39.6
+73.6
+37.5
+1
+42.4
+0
+63.1
+Kpcmadri50_50
+25
+2
+49.7
+4.5
+18
+3.5
+11
+32.2
+74.4
+29.6
+4
+30.1
+0
+49.8
+Kpcmadri75_50
+25
+2
+49.6
+1.8
+17
+1.2
+10
+27.7
+74.4
+26.0
+9
+17.8
+0
+38.3
+Kpcalda25_50
+31
+2
+49.4
+4.7
+11
+1.9
+15
+43.6
+73.7
+80.0
+0
+58.5
+0
+76.7
+Kpcalda50_50
+31
+2
+49.4
+3.8
+14
+1.6
+15
+39.0
+74.8
+100.5
+0
+52.0
+0
+71.0
+Kpcalda75_50
+31
+2
+49.3
+2.0
+14
+0.7
+15
+35.4
+73.9
+61.4
+0
+26.9
+0
+52.8
+Total/average
+486
+2
+52.6
+1.7
+352
+0.8
+357
+38.6
+74.4
+19.8
+260
+15.5
+179
+48.1
+FKPC
+Agg(FKPC)
+LFKPC
+FKPC
+Agg(FKPC)
+LFKPC
+CPU time (s)
+Min
+6.4
+6.7
+0.15
+14.3
+25.6
+0.15
+Av
+1,629.8
+609.2
+1.47
+2, 224.7
+832.4
+1.34
+Max
+3,600.0
+3,600.0
+2.88
+3, 600.0
+3, 600.0
+2.51
+123
+
+272
+E. Benavent et al.
+Table 14 Results for the multiple prize-collecting mixed CARP (K-PCMP)
+Name
+#
+K
+50 % of optional proﬁt
+75 % of optional proﬁt
+FKPC
+Agg(FKPC)
+LFKPC
+FKPC
+Agg(FKPC)
+LFKPC
+%QO
+Gap (%)
+#OS
+Gap (%)
+#OV
+Gap (%)
+%QO
+Gap (%)
+#OS
+Gap (%)
+#OV
+Gap (%)
+Kpcalba25_40
+25
+3
+48.9
+26.7
+0
+34.3
+0
+66.7
+73.7
+14.4
+0
+44.0
+0
+66.1
+Kpcalba25_40
+25
+3
+48.7
+12.9
+3
+35.4
+0
+59.9
+73.3
+9.7
+3
+41.5
+0
+60.8
+Kpcalba75_40
+25
+3
+48.9
+8.0
+4
+37.0
+0
+57.3
+73.6
+7.8
+3
+40.4
+0
+58.7
+Kpcmadri25_40
+25
+3
+50.2
+42.5
+0
+56.6
+0
+71.0
+74.2
+35.6
+0
+65.0
+0
+76.3
+Kpcmadri25_40
+25
+3
+50.8
+26.2
+0
+51.6
+0
+63.1
+74.8
+28.9
+0
+58.8
+0
+69.0
+Kpcmadri75_40
+25
+3
+50.5
+22.2
+1
+50.6
+0
+60.9
+75.3
+27.7
+0
+56.3
+0
+65.7
+Kpcalda25_40
+31
+3
+51.4
+64.9
+0
+68.5
+0
+80.7
+74.3
+52.2
+0
+73.6
+0
+83.2
+Kpcalda25_40
+31
+3
+52.1
+50.2
+0
+65.3
+0
+77.7
+74.9
+43.4
+0
+68.5
+0
+78.6
+Kpcalda75_40
+31
+3
+52.8
+42.0
+0
+65.1
+0
+75.2
+75.8
+43.5
+0
+68.0
+0
+76.9
+Kpcalba25_25
+25
+4
+48.2
+33.5
+0
+44.4
+0
+67.1
+74.1
+33.5
+0
+52.4
+0
+69.6
+Kpcalba25_25
+25
+3
+47.4
+9.8
+2
+37.4
+0
+59.3
+73.5
+17.2
+0
+46.4
+0
+64.5
+Kpcalba75_25
+25
+3
+46.4
+8.5
+5
+38.5
+0
+57.5
+73.8
+14.8
+0
+43.1
+0
+61.9
+Kpcmadri25_25
+25
+4
+49.7
+50.5
+0
+67.3
+0
+77.0
+74.4
+50.2
+0
+73.0
+0
+81.7
+Kpcmadri25_25
+25
+3
+50.4
+29.4
+0
+58.0
+0
+67.8
+74.6
+32.4
+0
+63.5
+0
+73.0
+Kpcmadri75_25
+25
+3
+52.2
+25.4
+0
+54.5
+0
+64.0
+75.9
+28.7
+0
+58.0
+0
+67.5
+Kpcalda25_25
+31
+4
+51.4
+65.2
+0
+74.5
+0
+83.1
+74.7
+61.8
+0
+77.7
+0
+84.5
+Kpcalda25_25
+30
+3
+52.9
+48.9
+0
+69.8
+0
+79.1
+75.3
+56.5
+0
+77.6
+0
+84.9
+Kpcalda75_25
+31
+3
+56.3
+50.2
+0
+71.2
+0
+79.1
+76.6
+53.8
+0
+74.3
+0
+82.3
+Total/average
+485
+50.5
+34.3
+15
+54.4
+0
+69.3
+74.6
+34.0
+6
+60.1
+0
+72.5
+FKPC
+Agg(FKPC)
+LFKPC
+FKPC
+Agg(FKPC)
+LFKPC
+CPU time (s)
+Min
+729.9
+23.1
+1.08
+1, 062.2
+22.5
+1.05
+Av
+3,550.3
+1,096.7
+2.67
+3, 583.9
+1,355.6
+2.52
+Max
+3,600.0
+3,600.0
+8.87
+3, 600.0
+3,600.0
+10.47
+123
+
+Proﬁtable mixed capacitated arc routing and related problems
+273
+the small and medium size instances. For the uncapacitated case, our models provide
+worse results than those by Archetti et al. (2013). Finally, the multiple vehicle prize-
+collecting model only works well when the number of vehicles is small.
+We stress that the proposed models consist of a base model complemented by a
+few additional constraints that allow formulating different arc routing problems with
+proﬁts. Note also that, as models are built for mixed graphs, they can be applied
+over other types of graphs. Therefore, an advantage of this approach is that new arc
+routing problems may be easily modelled, simply by adding new constraints to the
+base model.
+To sum up, from a base model, aggregate and valid models providing good bounds
+in short computing times have been derived for many arc routing problems with proﬁts.
+This approach may thus be considered a new and useful tool to deal with arc routing
+problems.
+Acknowledgments
+Authors want to thank two anonymous referees for their comments and suggestions
+that have contributed to improve the content and readability of the paper. E. Benavent and Á. Corberán wish
+to thank the Ministerio of Economía y Competitividad (project MTM2012-36163-C06-02) of Spain and
+the Generalitat Valenciana (project GVPROMETEO2013-049) for their support. L. Gouveia, M.C. Mourão
+and L.S. Pinto wish to thank the Fundação para a Ciência e Tecnologia (projects PEsT-OE/EGE/UI0491;
+PEsT-OE/MAT/UI0152; PTDC/EGE-GES/121406) for their support. Project MTM2012-36163-C06-02 is
+funded in cooperation with the European Community Fund FEDER.
+References
+Aráoz J, Fernández E, Franquesa C (2009a) The clustered prize-collecting arc routing problem. Transport
+Sci 43:287–308
+Araóz J, Fernández E, Meza O (2009b) Solving the prize-collecting rural Postman problem. Eur J Oper
+Res 196:886–896
+Aráoz J, Fernández E, Zoltan C (2006) Privatized rural Postman problems. Computers Oper Res 33:3432–
+3449
+Archetti C, Corberán Á, Plana I, Sanchis JM, Speranza MG (2013) The team orienteering arc routing
+problem. Transport Sci. doi:10.1287/trsc.2013.0484
+Archetti C, Feillet D, Hertz A, Speranza MG (2010) The undirected capacitated arc routing problem with
+proﬁts. Computers Oper Res 37:1860–1869
+Belenguer JM, Benavent E, Lacomme P, Prins C (2006) Lower and upper bound for the mixed capacitated
+arc routing problem. Computers Oper Res 33:3363–3383
+Benavent E, Campos V, Corberán A, Mota E (1992) The capacitated arc routing problem: lower bounds.
+Networks 22:669–690
+Benavent E, Corberán A, Plana I, Sanchis JM (2009) Min–max K-vehicles windy rural Postman problem.
+Networks 54:216–226
+Corberán A, Fernández E, Franquesa C, Sanchis JM (2011a) The windy clustered prize-collecting arc
+routing problem. Transport Sci 45:317–334
+Corberán A, Mejía G, Sanchis JM (2005) New results on the mixed general routing problem. Oper Res
+53:363–376
+Corberán Á, Plana I, Rodriguez-Chía A, Sanchis JM (2013) A branch-and-cut for the maximum beneﬁt
+Chinese Postman problem. Math Program 132:309–332
+Degraeve Z, Gochet W, Jans R (2002) Alternative formulations for a layout problem in the fashion industry.
+Eur J Oper Res 143:80–93
+Deitch R, Ladany S (2000) The one-period bus touring problem: solved by an effective heuristic for the
+orienteering tour problem and improvement algorithm. Eur J Oper Res 127:69–77
+Feillet D, Dejax P, Gendreau M (2005a) Traveling Salesman problems with proﬁts. Transport Sci 39:188–
+205
+123
+
+274
+E. Benavent et al.
+Feillet D, Dejax P, Gendreau M (2005b) The proﬁtable arc tour problem: solution with a branch-and-price
+algorithm. Transport Sci 39:539–552
+Gavish B, Graves S (1978) The travelling salesman problem and related problems. In: Working Paper
+OR-078-78: Operations Research Center, MIT, Cambridge
+Gouveia L, Mourão MC, Pinto LS (2010) Lower bounds for the mixed capacitated arc routing problem.
+Computers Oper Res 37:692–699
+Hertz A, Laporte G, Nanchen-Hugo P (1999) Improvement procedures for the undirected rural postman
+problem. INFORMS J Comput 11:53–62
+Hochbaum D, Olinick E (2001) The bounded cycle-cover problem. INFORMS J Comput 13:104–119
+Irnich S (2010) The proﬁtable capacitated rural Postman problem. TRISTAN 2010. Tromso, Norway, pp
+408–412
+Jans R (2009) Solving lot-sizing problems on parallel identical machines using symmetry-breaking con-
+straints. INFORMS J Comput 21:123–136
+Malandraki C, Daskin M (1993) The maximum beneﬁt Chinese Postman problem and the maximum beneﬁt
+traveling Salesman problem. Eur J Oper Res 65:218–324
+Pearn W, Chiu W (2005) Approximate solutions for the maximum beneﬁt Chinese postman problem. Int J
+Syst Sci 36:815–822
+Pearn W, Wang K (2003) On the maximum beneﬁt Chinese postman problem. OMEGA—Int J Manag Sci
+31:269–273
+SheraliHD,SmithJC(2001)Improvingdiscretemodelrepresentationsviasymmetryconsiderations.Manag
+Sci 47:1396–1407
+Souffriau W, Vansteenwegen P, Van den Berghe G (2011) The planning of cycle trips in the province of
+East Flanders. Omega 39:209–213
+Stenger A, Schneider M, Goeke D (2013) The prize-collecting vehicle routing problem with single and
+multiple depots and non-linear cost. Eur J Transp Logist 2:57–87
+Tang L, Wang X (2006) Iterated local search algorithm based on very large-scale neighborhood for prize-
+collecting vehicle routing problem. Int J Adv Manuf Technol 29:1246–1258
+Toth P, Vigo D (2002) The vehicle routing problem. SIAM, Philadelphia
+Vansteenwegen P, Souffriau W, Oudheusden D (2011) The orienteering problem: a survey. Eur J Oper Res
+209:1–10
+Zachariadis EE, Kiranoudis CT (2011) Local search for the undirected capacitated arc routing problem with
+proﬁts. Eur J Oper Res 210:358–367
+123

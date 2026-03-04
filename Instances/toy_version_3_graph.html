@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLIPP Instance Graph View</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #18212f;
+      --muted: #4a5972;
+      --mandatory: #cc2a2a;
+      --optional: #1564c0;
+      --connector: #7e889a;
+      --node: #2d5f5d;
+      --depot: #ff9a2f;
+      --grid: #e6ebf3;
+      --sel: #111111;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:
+        radial-gradient(circle at 85% 10%, #d9e6ff 0%, transparent 44%),
+        radial-gradient(circle at 10% 90%, #e9f0ff 0%, transparent 42%),
+        var(--bg);
+      color: var(--ink);
+    }
+    .wrap {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 14px;
+      padding: 14px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid #d8dfeb;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 3px 10px rgba(13, 29, 56, 0.08);
+    }
+    .title {
+      margin: 0 0 8px;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+    .sub {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .stat {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      font-size: 13px;
+      padding: 4px 0;
+      border-bottom: 1px solid #eef2f7;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      margin: 8px 0;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+    }
+    .mandatory { background: var(--mandatory); }
+    .optional { background: var(--optional); }
+    .connector { background: var(--connector); }
+    .depot { background: var(--depot); border-radius: 50%; }
+    .graph-card {
+      background: var(--panel);
+      border: 1px solid #d8dfeb;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 3px 10px rgba(13, 29, 56, 0.08);
+      position: relative;
+    }
+    .graph-head {
+      padding: 10px 14px;
+      border-bottom: 1px solid #e8eef8;
+      font-size: 13px;
+      color: var(--muted);
+      background: #f9fbff;
+    }
+    svg {
+      width: 100%;
+      height: calc(100vh - 62px);
+      display: block;
+      background:
+        linear-gradient(0deg, transparent 23px, var(--grid) 24px),
+        linear-gradient(90deg, transparent 23px, var(--grid) 24px),
+        #ffffff;
+      background-size: 24px 24px;
+    }
+    .edge {
+      stroke-linecap: round;
+      opacity: 0.9;
+      cursor: pointer;
+    }
+    .edge-cat-M { stroke: var(--mandatory); stroke-width: 4.4; }
+    .edge-cat-O { stroke: var(--optional); stroke-width: 3.0; }
+    .edge-cat-C { stroke: var(--connector); stroke-width: 2.2; stroke-dasharray: 6 4; }
+    .edge.selected {
+      stroke: var(--sel);
+      stroke-width: 5.3;
+      opacity: 1;
+    }
+    .edge-label {
+      font-size: 11px;
+      fill: #243149;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 3px;
+      stroke-linejoin: round;
+      pointer-events: none;
+      user-select: none;
+    }
+    .node {
+      fill: var(--node);
+      stroke: #ffffff;
+      stroke-width: 2px;
+      cursor: pointer;
+    }
+    .node.depot {
+      fill: var(--depot);
+      stroke: #1f1f1f;
+      stroke-width: 2.2px;
+    }
+    .node.selected {
+      stroke: #101010;
+      stroke-width: 3.6px;
+    }
+    .node-label {
+      font-size: 12px;
+      fill: #0f1f3f;
+      font-weight: 600;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 3px;
+      pointer-events: none;
+      user-select: none;
+    }
+    .info {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #1f2d43;
+      background: #f4f8ff;
+      border: 1px solid #d9e4f8;
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 64px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 960px) {
+      .wrap { grid-template-columns: 1fr; }
+      svg { height: 62vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h1 class="title">CLIPP Graph Viewer</h1>
+      <p class="sub">Interactive graph with labels, colors, mandatory lines, and direction arrows.</p>
+      <div id="stats"></div>
+      <hr style="border:0;border-top:1px solid #e8eef8;margin:10px 0;">
+      <div class="row"><input id="toggleM" type="checkbox" checked><label for="toggleM">Show Mandatory</label></div>
+      <div class="row"><input id="toggleO" type="checkbox" checked><label for="toggleO">Show Optional</label></div>
+      <div class="row"><input id="toggleC" type="checkbox" checked><label for="toggleC">Show Connector</label></div>
+      <div class="row"><input id="toggleNodeLabels" type="checkbox" checked><label for="toggleNodeLabels">Node Labels</label></div>
+      <div class="row"><input id="toggleEdgeLabels" type="checkbox" checked><label for="toggleEdgeLabels">Street Labels</label></div>
+      <hr style="border:0;border-top:1px solid #e8eef8;margin:10px 0;">
+      <div class="row"><span class="legend-dot mandatory"></span>Mandatory street</div>
+      <div class="row"><span class="legend-dot optional"></span>Optional street</div>
+      <div class="row"><span class="legend-dot connector"></span>Connector street</div>
+      <div class="row"><span class="legend-dot depot"></span>Depot node</div>
+      <div class="info" id="info">Click a node or street to inspect details.</div>
+    </div>
+    <div class="graph-card">
+      <div class="graph-head" id="graphHead"></div>
+      <svg id="graph" aria-label="Graph visualization">
+        <defs>
+          <marker id="arrow-end" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8,4 L0,8 Z" fill="currentColor"></path>
+          </marker>
+          <marker id="arrow-start" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto" markerUnits="strokeWidth">
+            <path d="M8,0 L0,4 L8,8 Z" fill="currentColor"></path>
+          </marker>
+        </defs>
+        <g id="edgeLayer"></g>
+        <g id="edgeLabelLayer"></g>
+        <g id="nodeLayer"></g>
+        <g id="nodeLabelLayer"></g>
+      </svg>
+    </div>
+  </div>
+  <script>
+    const data = {"meta":{"N":6,"M":10,"T":300,"C":3,"S":0,"W":0.0,"fleet":["L","S","M"],"categoryCounts":{"M":2,"O":5,"C":3},"viewWidth":1280,"viewHeight":860},"nodes":[{"id":0,"x":714.86,"y":800.0,"isDepot":true,"degree":3},{"id":1,"x":330.87,"y":692.28,"isDepot":false,"degree":4},{"id":2,"x":728.22,"y":355.61,"isDepot":false,"degree":5},{"id":3,"x":475.79,"y":496.98,"isDepot":false,"degree":4},{"id":4,"x":239.75,"y":270.3,"isDepot":false,"degree":3},{"id":5,"x":1196.94,"y":60.0,"isDepot":false,"degree":1}],"edges":[{"id":0,"a":0,"b":2,"dir":2,"cat":"C","cost":200,"length":0,"req":0,"label":"#0 | cost=200s len=0m req=0"},{"id":1,"a":0,"b":3,"dir":1,"cat":"O","cost":69,"length":292,"req":30,"label":"#1 | cost=69s len=292m req=30"},{"id":2,"a":2,"b":5,"dir":2,"cat":"C","cost":183,"length":0,"req":0,"label":"#2 | cost=183s len=0m req=0"},{"id":3,"a":3,"b":4,"dir":2,"cat":"M","cost":102,"length":422,"req":30,"label":"#3 | cost=102s len=422m req=30"},{"id":4,"a":1,"b":4,"dir":2,"cat":"C","cost":35,"length":0,"req":0,"label":"#4 | cost=35s len=0m req=0"},{"id":5,"a":2,"b":4,"dir":2,"cat":"M","cost":25,"length":68,"req":10,"label":"#5 | cost=25s len=68m req=10"},{"id":6,"a":0,"b":1,"dir":2,"cat":"O","cost":56,"length":182,"req":30,"label":"#6 | cost=56s len=182m req=30"},{"id":7,"a":1,"b":2,"dir":2,"cat":"O","cost":200,"length":370,"req":20,"label":"#7 | cost=200s len=370m req=20"},{"id":8,"a":2,"b":3,"dir":2,"cat":"O","cost":130,"length":476,"req":20,"label":"#8 | cost=130s len=476m req=20"},{"id":9,"a":1,"b":3,"dir":2,"cat":"O","cost":137,"length":349,"req":20,"label":"#9 | cost=137s len=349m req=20"}]};
+    const meta = data.meta;
+    const graph = document.getElementById("graph");
+    const edgeLayer = document.getElementById("edgeLayer");
+    const edgeLabelLayer = document.getElementById("edgeLabelLayer");
+    const nodeLayer = document.getElementById("nodeLayer");
+    const nodeLabelLayer = document.getElementById("nodeLabelLayer");
+    const info = document.getElementById("info");
+
+    graph.setAttribute("viewBox", `0 0 ${meta.viewWidth} ${meta.viewHeight}`);
+    document.getElementById("graphHead").textContent =
+      `Nodes: ${meta.N} | Streets: ${meta.M} | Depot: ${meta.S} | Fleet: ${meta.fleet.join(", ")} | T=${meta.T}s | W=${meta.W}`;
+
+    const stats = document.getElementById("stats");
+    function statRow(label, value) {
+      const row = document.createElement("div");
+      row.className = "stat";
+      const a = document.createElement("span");
+      a.textContent = label;
+      const b = document.createElement("strong");
+      b.textContent = value;
+      row.appendChild(a);
+      row.appendChild(b);
+      return row;
+    }
+    stats.appendChild(statRow("Junctions", meta.N));
+    stats.appendChild(statRow("Streets", meta.M));
+    stats.appendChild(statRow("Mandatory", meta.categoryCounts.M));
+    stats.appendChild(statRow("Optional", meta.categoryCounts.O));
+    stats.appendChild(statRow("Connector", meta.categoryCounts.C));
+    stats.appendChild(statRow("Time Limit (T)", `${meta.T}s`));
+
+    const nodeById = new Map();
+    for (const n of data.nodes) nodeById.set(n.id, n);
+
+    let selected = null;
+    function clearSelection() {
+      if (selected) selected.classList.remove("selected");
+      selected = null;
+    }
+    function setInfo(text) {
+      info.textContent = text;
+    }
+
+    const edgeEntries = [];
+    for (const e of data.edges) {
+      const a = nodeById.get(e.a);
+      const b = nodeById.get(e.b);
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", a.x);
+      line.setAttribute("y1", a.y);
+      line.setAttribute("x2", b.x);
+      line.setAttribute("y2", b.y);
+      line.classList.add("edge", `edge-cat-${e.cat}`);
+
+      if (e.dir === 1) {
+        line.setAttribute("marker-end", "url(#arrow-end)");
+      } else {
+        line.setAttribute("marker-start", "url(#arrow-start)");
+        line.setAttribute("marker-end", "url(#arrow-end)");
+      }
+
+      const lineTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      lineTitle.textContent =
+        `Street ${e.id}: ${e.a} -> ${e.b}, cat=${e.cat}, dir=${e.dir}, cost=${e.cost}s, len=${e.length}m, req=${e.req}`;
+      line.appendChild(lineTitle);
+
+      line.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        clearSelection();
+        selected = line;
+        selected.classList.add("selected");
+        setInfo(
+          `Street #${e.id}\n` +
+          `From ${e.a} to ${e.b}\n` +
+          `Category: ${e.cat} | Direction: ${e.dir === 1 ? "one-way" : "two-way"}\n` +
+          `Cost: ${e.cost}s | Length: ${e.length}m | Requirement: ${e.req}`
+        );
+      });
+
+      edgeLayer.appendChild(line);
+
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const nx = -dy / d;
+      const ny = dx / d;
+      const labelOffset = 8 + (e.id % 5) * 2;
+      text.setAttribute("x", mx + nx * labelOffset);
+      text.setAttribute("y", my + ny * labelOffset);
+      text.classList.add("edge-label");
+      text.textContent = e.label;
+      edgeLabelLayer.appendChild(text);
+
+      edgeEntries.push({ edge: e, line, label: text });
+    }
+
+    const nodeEntries = [];
+    for (const n of data.nodes) {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", n.x);
+      c.setAttribute("cy", n.y);
+      c.setAttribute("r", n.isDepot ? 8.5 : 6.2);
+      c.classList.add("node");
+      if (n.isDepot) c.classList.add("depot");
+
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      title.textContent = `Node ${n.id}${n.isDepot ? " (Depot)" : ""}, degree=${n.degree}`;
+      c.appendChild(title);
+
+      c.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        clearSelection();
+        selected = c;
+        selected.classList.add("selected");
+        setInfo(
+          `Node ${n.id}${n.isDepot ? " (Depot)" : ""}\n` +
+          `Degree: ${n.degree}\n` +
+          `Position: (${n.x.toFixed(1)}, ${n.y.toFixed(1)})`
+        );
+      });
+
+      nodeLayer.appendChild(c);
+
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", n.x + 8);
+      t.setAttribute("y", n.y - 8);
+      t.classList.add("node-label");
+      t.textContent = String(n.id);
+      nodeLabelLayer.appendChild(t);
+
+      nodeEntries.push({ node: n, circle: c, label: t });
+    }
+
+    graph.addEventListener("click", () => {
+      clearSelection();
+      setInfo("Click a node or street to inspect details.");
+    });
+
+    const toggleM = document.getElementById("toggleM");
+    const toggleO = document.getElementById("toggleO");
+    const toggleC = document.getElementById("toggleC");
+    const toggleNodeLabels = document.getElementById("toggleNodeLabels");
+    const toggleEdgeLabels = document.getElementById("toggleEdgeLabels");
+
+    function categoryVisible(cat) {
+      if (cat === "M") return toggleM.checked;
+      if (cat === "O") return toggleO.checked;
+      if (cat === "C") return toggleC.checked;
+      return true;
+    }
+
+    function applyFilters() {
+      for (const item of edgeEntries) {
+        const visible = categoryVisible(item.edge.cat);
+        item.line.style.display = visible ? "" : "none";
+        item.label.style.display = visible && toggleEdgeLabels.checked ? "" : "none";
+      }
+      for (const item of nodeEntries) {
+        item.label.style.display = toggleNodeLabels.checked ? "" : "none";
+      }
+    }
+
+    toggleM.addEventListener("change", applyFilters);
+    toggleO.addEventListener("change", applyFilters);
+    toggleC.addEventListener("change", applyFilters);
+    toggleNodeLabels.addEventListener("change", applyFilters);
+    toggleEdgeLabels.addEventListener("change", applyFilters);
+    applyFilters();
+  </script>
+</body>
+</html>

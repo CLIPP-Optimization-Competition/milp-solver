@@ -1,4 +1,262 @@
-<!doctype html>
+#!/usr/bin/env python3
+"""
+Generate an interactive HTML visualization for a CLIPP instance.
+
+Usage:
+    python visualize_instance.py "1. Instances/toy.txt"
+    python visualize_instance.py "1. Instances/A_instance.txt" --open
+"""
+
+import argparse
+import json
+import math
+import random
+import webbrowser
+from pathlib import Path
+
+def parse_instance(filepath):
+    """Parse CLIPP instance files (same format as solver)."""
+    with open(filepath, encoding="utf-8") as fh:
+        raw = [ln.strip() for ln in fh if ln.strip()]
+
+    idx = 0
+    header = raw[idx].split()
+    idx += 1
+
+    n = int(header[0])
+    m = int(header[1])
+    t_limit = int(header[2])
+    c = int(header[3])
+    depot = int(header[4])
+    w_penalty = float(header[5]) if len(header) >= 6 else 0.0
+
+    junction_coords = []
+    if idx < len(raw):
+        tokens = raw[idx].split()
+        if len(tokens) == 2:
+            try:
+                float(tokens[0])
+                float(tokens[1])
+                for _ in range(n):
+                    parts = raw[idx].split()
+                    junction_coords.append((float(parts[0]), float(parts[1])))
+                    idx += 1
+            except ValueError:
+                pass
+
+    streets = []
+    for j in range(m):
+        parts = raw[idx].split()
+        idx += 1
+        a = int(parts[0])
+        b = int(parts[1])
+        direction = int(parts[2])
+        cost = int(parts[3])
+        length = int(parts[4])
+        cat = parts[5]
+        req = int(parts[6])
+        streets.append(
+            {
+                "id": j,
+                "a": a,
+                "b": b,
+                "dir": direction,
+                "cost": cost,
+                "length": length,
+                "cat": cat,
+                "req": req,
+            }
+        )
+
+    vehicle_tokens = raw[idx].split()
+    cap = {"S": 10, "M": 20, "L": 30}
+    vehicles = [{"type": tok, "cap": cap[tok]} for tok in vehicle_tokens]
+
+    return {
+        "N": n,
+        "M": m,
+        "T": t_limit,
+        "C": c,
+        "S": depot,
+        "W": w_penalty,
+        "streets": streets,
+        "vehicles": vehicles,
+        "junction_coords": junction_coords,
+    }
+
+
+def _normalize_points(points, width, height, pad):
+    """Scale points to fit inside [pad, width-pad] x [pad, height-pad]."""
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+
+    span_x = max(max_x - min_x, 1e-9)
+    span_y = max(max_y - min_y, 1e-9)
+
+    sx = (width - 2 * pad) / span_x
+    sy = (height - 2 * pad) / span_y
+    scale = min(sx, sy)
+
+    out = []
+    for x, y in points:
+        nx = pad + (x - min_x) * scale
+        ny = pad + (y - min_y) * scale
+        out.append((nx, ny))
+    return out
+
+
+def _force_layout(instance, width, height, seed=42, iterations=240):
+    """
+    Deterministic Fruchterman-Reingold style layout for instances without coords.
+    Complexity is O(iterations * N^2), reasonable for the provided instance sizes.
+    """
+    n = instance["N"]
+    rng = random.Random(seed)
+    pad = 60.0
+
+    if n == 1:
+        return [(width / 2.0, height / 2.0)]
+
+    # Initial circle + tiny jitter for stable yet non-uniform starts
+    cx = width / 2.0
+    cy = height / 2.0
+    radius = min(width, height) * 0.35
+    pos = []
+    for i in range(n):
+        angle = 2.0 * math.pi * i / n
+        x = cx + radius * math.cos(angle) + rng.uniform(-8.0, 8.0)
+        y = cy + radius * math.sin(angle) + rng.uniform(-8.0, 8.0)
+        pos.append([x, y])
+
+    # Use one undirected spring per street
+    springs = [(s["a"], s["b"]) for s in instance["streets"]]
+    area = max((width - 2 * pad) * (height - 2 * pad), 1.0)
+    k = math.sqrt(area / float(n))
+    temperature = min(width, height) * 0.12
+
+    for _ in range(iterations):
+        disp = [[0.0, 0.0] for _ in range(n)]
+
+        # Repulsive forces between all node pairs
+        for i in range(n):
+            xi, yi = pos[i]
+            for j in range(i + 1, n):
+                xj, yj = pos[j]
+                dx = xi - xj
+                dy = yi - yj
+                dist = math.hypot(dx, dy) + 1e-9
+                force = (k * k) / dist
+                fx = (dx / dist) * force
+                fy = (dy / dist) * force
+                disp[i][0] += fx
+                disp[i][1] += fy
+                disp[j][0] -= fx
+                disp[j][1] -= fy
+
+        # Attractive forces along streets
+        for u, v in springs:
+            dx = pos[u][0] - pos[v][0]
+            dy = pos[u][1] - pos[v][1]
+            dist = math.hypot(dx, dy) + 1e-9
+            force = (dist * dist) / k
+            fx = (dx / dist) * force
+            fy = (dy / dist) * force
+            disp[u][0] -= fx
+            disp[u][1] -= fy
+            disp[v][0] += fx
+            disp[v][1] += fy
+
+        # Move nodes with temperature-limited step
+        for i in range(n):
+            dx, dy = disp[i]
+            disp_len = math.hypot(dx, dy)
+            if disp_len > 0:
+                step = min(disp_len, temperature)
+                pos[i][0] += (dx / disp_len) * step
+                pos[i][1] += (dy / disp_len) * step
+            pos[i][0] = min(width - pad, max(pad, pos[i][0]))
+            pos[i][1] = min(height - pad, max(pad, pos[i][1]))
+
+        temperature *= 0.96
+        if temperature < 0.5:
+            break
+
+    return [(p[0], p[1]) for p in pos]
+
+
+def build_layout(instance, width, height):
+    coords = instance.get("junction_coords", [])
+    if coords and len(coords) == instance["N"]:
+        return _normalize_points(coords, width, height, pad=60.0)
+    return _force_layout(instance, width, height)
+
+
+def build_view_data(instance, points, width, height):
+    depot = instance["S"]
+    streets = instance["streets"]
+    vehicles = instance["vehicles"]
+
+    degree = [0] * instance["N"]
+    for s in streets:
+        degree[s["a"]] += 1
+        degree[s["b"]] += 1
+
+    nodes = []
+    for i, (x, y) in enumerate(points):
+        nodes.append(
+            {
+                "id": i,
+                "x": round(x, 2),
+                "y": round(y, 2),
+                "isDepot": i == depot,
+                "degree": degree[i],
+            }
+        )
+
+    edges = []
+    for s in streets:
+        label = f"#{s['id']} | cost={s['cost']}s len={s['length']}m req={s['req']}"
+        edges.append(
+            {
+                "id": s["id"],
+                "a": s["a"],
+                "b": s["b"],
+                "dir": s["dir"],
+                "cat": s["cat"],
+                "cost": s["cost"],
+                "length": s["length"],
+                "req": s["req"],
+                "label": label,
+            }
+        )
+
+    cat_counts = {"M": 0, "O": 0, "C": 0}
+    for s in streets:
+        cat_counts[s["cat"]] += 1
+
+    return {
+        "meta": {
+            "N": instance["N"],
+            "M": instance["M"],
+            "T": instance["T"],
+            "C": instance["C"],
+            "S": instance["S"],
+            "W": instance["W"],
+            "fleet": [v["type"] for v in vehicles],
+            "categoryCounts": cat_counts,
+            "viewWidth": width,
+            "viewHeight": height,
+        },
+        "nodes": nodes,
+        "edges": edges,
+    }
+
+
+def build_html(data):
+    data_json = json.dumps(data, separators=(",", ":"))
+    html = """<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -206,7 +464,7 @@
     </div>
   </div>
   <script>
-    const data = {"meta":{"N":6,"M":10,"T":300,"C":3,"S":0,"W":0.0,"fleet":["S","L","M"],"categoryCounts":{"M":2,"O":5,"C":3},"viewWidth":1280,"viewHeight":860},"nodes":[{"id":0,"x":862.56,"y":306.41,"isDepot":true,"degree":4},{"id":1,"x":583.33,"y":479.93,"isDepot":false,"degree":5},{"id":2,"x":882.66,"y":774.11,"isDepot":false,"degree":3},{"id":3,"x":97.9,"y":305.64,"isDepot":false,"degree":2},{"id":4,"x":437.48,"y":97.8,"isDepot":false,"degree":3},{"id":5,"x":1110.11,"y":552.38,"isDepot":false,"degree":3}],"edges":[{"id":0,"a":1,"b":5,"dir":1,"cat":"O","cost":5,"length":81,"req":30,"label":"#0 | cost=5s len=81m req=30"},{"id":1,"a":0,"b":1,"dir":1,"cat":"C","cost":24,"length":0,"req":0,"label":"#1 | cost=24s len=0m req=0"},{"id":2,"a":1,"b":4,"dir":2,"cat":"C","cost":114,"length":0,"req":0,"label":"#2 | cost=114s len=0m req=0"},{"id":3,"a":0,"b":2,"dir":1,"cat":"O","cost":170,"length":266,"req":10,"label":"#3 | cost=170s len=266m req=10"},{"id":4,"a":3,"b":4,"dir":2,"cat":"C","cost":160,"length":0,"req":0,"label":"#4 | cost=160s len=0m req=0"},{"id":5,"a":0,"b":4,"dir":1,"cat":"M","cost":179,"length":76,"req":30,"label":"#5 | cost=179s len=76m req=30"},{"id":6,"a":2,"b":5,"dir":1,"cat":"O","cost":130,"length":467,"req":10,"label":"#6 | cost=130s len=467m req=10"},{"id":7,"a":0,"b":5,"dir":2,"cat":"M","cost":156,"length":264,"req":30,"label":"#7 | cost=156s len=264m req=30"},{"id":8,"a":1,"b":3,"dir":2,"cat":"O","cost":123,"length":361,"req":20,"label":"#8 | cost=123s len=361m req=20"},{"id":9,"a":1,"b":2,"dir":1,"cat":"O","cost":165,"length":421,"req":10,"label":"#9 | cost=165s len=421m req=10"}]};
+    const data = __DATA_JSON__;
     const meta = data.meta;
     const graph = document.getElementById("graph");
     const edgeLayer = document.getElementById("edgeLayer");
@@ -280,9 +538,9 @@
         selected = line;
         selected.classList.add("selected");
         setInfo(
-          `Street #${e.id}\n` +
-          `From ${e.a} to ${e.b}\n` +
-          `Category: ${e.cat} | Direction: ${e.dir === 1 ? "one-way" : "two-way"}\n` +
+          `Street #${e.id}\\n` +
+          `From ${e.a} to ${e.b}\\n` +
+          `Category: ${e.cat} | Direction: ${e.dir === 1 ? "one-way" : "two-way"}\\n` +
           `Cost: ${e.cost}s | Length: ${e.length}m | Requirement: ${e.req}`
         );
       });
@@ -326,8 +584,8 @@
         selected = c;
         selected.classList.add("selected");
         setInfo(
-          `Node ${n.id}${n.isDepot ? " (Depot)" : ""}\n` +
-          `Degree: ${n.degree}\n` +
+          `Node ${n.id}${n.isDepot ? " (Depot)" : ""}\\n` +
+          `Degree: ${n.degree}\\n` +
           `Position: (${n.x.toFixed(1)}, ${n.y.toFixed(1)})`
         );
       });
@@ -382,3 +640,42 @@
   </script>
 </body>
 </html>
+"""
+    return html.replace("__DATA_JSON__", data_json)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Visualize CLIPP instances as an interactive HTML graph."
+    )
+    parser.add_argument("input_file", help="Path to CLIPP instance .txt file")
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="Output HTML path (default: <input_stem>_graph.html in same folder)",
+    )
+    parser.add_argument("--width", type=int, default=1280, help="Graph width in px")
+    parser.add_argument("--height", type=int, default=860, help="Graph height in px")
+    parser.add_argument("--open", action="store_true", help="Open generated HTML in browser")
+    args = parser.parse_args()
+
+    input_path = Path(args.input_file)
+    if args.output:
+        output_path = Path(args.output)
+    else:
+        output_path = input_path.parent / f"{input_path.stem}_graph.html"
+
+    instance = parse_instance(str(input_path))
+    points = build_layout(instance, args.width, args.height)
+    data = build_view_data(instance, points, args.width, args.height)
+    html = build_html(data)
+
+    output_path.write_text(html, encoding="utf-8")
+    print(f"[OK] Graph view generated: {output_path}")
+
+    if args.open:
+        webbrowser.open(output_path.resolve().as_uri())
+
+
+if __name__ == "__main__":
+    main()

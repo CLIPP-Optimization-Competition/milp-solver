@@ -42,16 +42,10 @@ hr.sep{border:0;border-top:1px solid #e8eef8;margin:10px 0}
 .tab-btn.active{color:var(--tab-active);border-bottom-color:var(--tab-active);font-weight:700}
 .tab-btn:hover:not(.active){background:#eef3fc}
 .tab-btn:disabled{opacity:.35;cursor:not-allowed}
-svg{display:block;flex:1;min-height:0;
-  background:linear-gradient(0deg,transparent 23px,var(--grid) 24px),
-    linear-gradient(90deg,transparent 23px,var(--grid) 24px),#fff;
-  background-size:24px 24px;cursor:grab}
-svg.panning{cursor:grabbing}
-.edge{stroke-linecap:round;opacity:.9;cursor:pointer}
-.edge-cat-M{stroke:var(--mandatory);stroke-width:4.4}
-.edge-cat-O{stroke:var(--optional);stroke-width:3}
-.edge-cat-C{stroke:var(--connector);stroke-width:2.2;stroke-dasharray:6 4}
-.edge.selected{stroke:var(--sel);stroke-width:5.3;opacity:1}
+svg#graph{display:block;flex:1;min-height:0;cursor:grab;background:#fff;touch-action:none}
+svg#graph.panning{cursor:grabbing}
+.edge{stroke-linecap:round;opacity:.88;cursor:pointer}
+.edge.selected{stroke:var(--sel)!important;opacity:1}
 .edge-label{font-size:11px;fill:#243149;paint-order:stroke;stroke:#fff;
   stroke-width:3px;stroke-linejoin:round;pointer-events:none;user-select:none}
 .node{fill:var(--node);stroke:#fff;stroke-width:2px;cursor:pointer}
@@ -59,8 +53,8 @@ svg.panning{cursor:grabbing}
 .node.selected{stroke:#101010;stroke-width:3.6px}
 .node-label{font-size:12px;fill:#0f1f3f;font-weight:600;paint-order:stroke;
   stroke:#fff;stroke-width:3px;pointer-events:none;user-select:none}
-svg.anim-mode .edge{opacity:.25}
-svg.anim-mode .edge-label{opacity:.15}
+svg#graph.anim-mode .edge{opacity:.22}
+svg#graph.anim-mode .edge-label{opacity:.12}
 .anim-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;
   border-top:1px solid #e8eef8;background:#f9fbff;font-size:13px}
 .anim-bar button{padding:5px 14px;border:1px solid #c5cfe0;border-radius:6px;
@@ -68,11 +62,20 @@ svg.anim-mode .edge-label{opacity:.15}
 .anim-bar button:hover{background:#eef3fc}
 #timeline{flex:1;height:6px;cursor:pointer;accent-color:var(--tab-active)}
 .speed-sel{padding:3px 8px;border:1px solid #c5cfe0;border-radius:4px;font-size:12px}
-.zoom-btns{position:absolute;top:48px;right:12px;display:flex;flex-direction:column;gap:4px;z-index:5}
-.zoom-btns button{width:32px;height:32px;border:1px solid #d0d8e8;border-radius:6px;
-  background:rgba(255,255,255,.92);cursor:pointer;font-size:16px;font-weight:700;
-  color:var(--ink);display:flex;align-items:center;justify-content:center}
-.zoom-btns button:hover{background:#e8eeff}
+.ctrl-strip{position:absolute;top:48px;right:12px;display:flex;flex-direction:column;gap:4px;z-index:5}
+.ctrl-strip button{width:34px;height:34px;border:1px solid #d0d8e8;border-radius:8px;
+  background:rgba(255,255,255,.94);cursor:pointer;font-size:16px;font-weight:700;
+  color:var(--ink);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.08);transition:background .12s}
+.ctrl-strip button:hover{background:#e8eeff}
+.zoom-pct{width:34px;text-align:center;font-size:10px;color:var(--muted);
+  font-weight:600;pointer-events:none;padding:2px 0}
+/* Minimap */
+.minimap{position:absolute;bottom:8px;right:8px;width:160px;height:108px;
+  border:1px solid #d0d8e8;border-radius:8px;background:rgba(255,255,255,.92);
+  box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;z-index:5;cursor:pointer}
+.minimap svg{width:100%;height:100%;background:#fafbfe}
+.minimap .mm-vp{fill:rgba(21,100,192,.12);stroke:var(--tab-active);stroke-width:2;rx:2;ry:2}
 .vehicle-card{font-size:12px;margin:5px 0;padding:7px 9px;border-radius:8px;
   border-left:4px solid;display:flex;align-items:center;gap:8px;background:#f9fbff}
 .v-dot{width:16px;height:16px;border-radius:50%;border:3px solid;flex-shrink:0}
@@ -86,7 +89,7 @@ svg.anim-mode .edge-label{opacity:.15}
 .progress-bar{height:8px;border-radius:4px;background:#e8eef8;margin:6px 0;overflow:hidden}
 .progress-fill{height:100%;border-radius:4px;background:var(--clean);transition:width .3s}
 .hidden{display:none!important}
-@media(max-width:960px){.wrap{grid-template-columns:1fr}svg{height:62vh}}
+@media(max-width:960px){.wrap{grid-template-columns:1fr}svg#graph{height:62vh}}
 </style>
 </head>
 <body>
@@ -109,6 +112,7 @@ svg.anim-mode .edge-label{opacity:.15}
       <div class="row"><span class="legend-dot optional"></span>Optional street</div>
       <div class="row"><span class="legend-dot connector"></span>Connector street</div>
       <div class="row"><span class="legend-dot depot-dot"></span>Depot node</div>
+      <p style="font-size:11px;color:var(--muted);margin:4px 0 0">Edge thickness = traversal cost</p>
       <div class="info" id="info">Click a node or street to inspect details.</div>
     </div>
     <!-- Animation-mode sidebar -->
@@ -128,15 +132,17 @@ svg.anim-mode .edge-label{opacity:.15}
     </div>
   </div>
   <!-- ===== GRAPH CARD ===== -->
-  <div class="graph-card">
+  <div class="graph-card" id="graphCard">
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="graph">Graph View</button>
       <button class="tab-btn" data-tab="anim" id="animTabBtn">Solution Animation</button>
     </div>
-    <div class="zoom-btns">
-      <button id="zoomIn" title="Zoom In">+</button>
-      <button id="zoomOut" title="Zoom Out">&minus;</button>
-      <button id="zoomReset" title="Reset Zoom" style="font-size:12px">&#8634;</button>
+    <div class="ctrl-strip">
+      <button id="zoomIn" title="Zoom In (+ / scroll)">+</button>
+      <button id="zoomOut" title="Zoom Out (&minus; / scroll)">&minus;</button>
+      <div class="zoom-pct" id="zoomPct">100%</div>
+      <button id="zoomFit" title="Fit to content" style="font-size:13px">&#9974;</button>
+      <button id="zoomReset" title="Reset view" style="font-size:13px">&#8634;</button>
     </div>
     <svg id="graph" aria-label="Graph visualization">
       <defs>
@@ -149,13 +155,24 @@ svg.anim-mode .edge-label{opacity:.15}
           <path d="M8,0 L0,4 L8,8 Z" fill="currentColor"/>
         </marker>
       </defs>
-      <g id="edgeLayer"></g>
-      <g id="animEdgeOverlay"></g>
-      <g id="edgeLabelLayer"></g>
-      <g id="nodeLayer"></g>
-      <g id="nodeLabelLayer"></g>
-      <g id="vehicleLayer"></g>
+      <g id="worldGroup">
+        <g id="gridLayer"></g>
+        <g id="edgeLayer"></g>
+        <g id="animEdgeOverlay"></g>
+        <g id="edgeLabelLayer"></g>
+        <g id="nodeLayer"></g>
+        <g id="nodeLabelLayer"></g>
+        <g id="vehicleLayer"></g>
+      </g>
     </svg>
+    <!-- Minimap -->
+    <div class="minimap" id="minimap">
+      <svg id="mmSvg" preserveAspectRatio="xMidYMid meet">
+        <g id="mmEdges"></g>
+        <g id="mmNodes"></g>
+        <rect class="mm-vp" id="mmViewport" x="0" y="0" width="100" height="100"/>
+      </svg>
+    </div>
     <div class="anim-bar hidden" id="animBar">
       <button id="playPause">&#9654; Play</button>
       <button id="resetBtn">&#8634;</button>
@@ -178,36 +195,87 @@ svg.anim-mode .edge-label{opacity:.15}
 </div>
 <script>
 // ====== DATA ======
-const data = {"meta":{"N":6,"M":10,"T":300,"C":3,"S":0,"W":0.0,"fleet":["L","S","M"],"categoryCounts":{"M":2,"O":5,"C":3},"viewWidth":1280,"viewHeight":860},"nodes":[{"id":0,"x":714.86,"y":800.0,"isDepot":true,"degree":3},{"id":1,"x":330.87,"y":692.28,"isDepot":false,"degree":4},{"id":2,"x":728.22,"y":355.61,"isDepot":false,"degree":5},{"id":3,"x":475.79,"y":496.98,"isDepot":false,"degree":4},{"id":4,"x":239.75,"y":270.3,"isDepot":false,"degree":3},{"id":5,"x":1196.94,"y":60.0,"isDepot":false,"degree":1}],"edges":[{"id":0,"a":0,"b":2,"dir":2,"cat":"C","cost":200,"length":0,"req":0,"label":"#0 | cost=200s len=0m req=0"},{"id":1,"a":0,"b":3,"dir":1,"cat":"O","cost":69,"length":292,"req":30,"label":"#1 | cost=69s len=292m req=30"},{"id":2,"a":2,"b":5,"dir":2,"cat":"C","cost":183,"length":0,"req":0,"label":"#2 | cost=183s len=0m req=0"},{"id":3,"a":3,"b":4,"dir":2,"cat":"M","cost":102,"length":422,"req":30,"label":"#3 | cost=102s len=422m req=30"},{"id":4,"a":1,"b":4,"dir":2,"cat":"C","cost":35,"length":0,"req":0,"label":"#4 | cost=35s len=0m req=0"},{"id":5,"a":2,"b":4,"dir":2,"cat":"M","cost":25,"length":68,"req":10,"label":"#5 | cost=25s len=68m req=10"},{"id":6,"a":0,"b":1,"dir":2,"cat":"O","cost":56,"length":182,"req":30,"label":"#6 | cost=56s len=182m req=30"},{"id":7,"a":1,"b":2,"dir":2,"cat":"O","cost":200,"length":370,"req":20,"label":"#7 | cost=200s len=370m req=20"},{"id":8,"a":2,"b":3,"dir":2,"cat":"O","cost":130,"length":476,"req":20,"label":"#8 | cost=130s len=476m req=20"},{"id":9,"a":1,"b":3,"dir":2,"cat":"O","cost":137,"length":349,"req":20,"label":"#9 | cost=137s len=349m req=20"}]};
+const data = {"meta":{"N":6,"M":10,"T":300,"C":3,"S":0,"W":0.0,"fleet":["L","S","M"],"categoryCounts":{"M":2,"O":5,"C":3},"viewWidth":1280,"viewHeight":860,"minCost":25,"maxCost":200},"nodes":[{"id":0,"x":1220.0,"y":131.76,"isDepot":true,"degree":3},{"id":1,"x":1220.0,"y":661.92,"isDepot":false,"degree":4},{"id":2,"x":453.82,"y":615.17,"isDepot":false,"degree":5},{"id":3,"x":820.92,"y":184.64,"isDepot":false,"degree":4},{"id":4,"x":824.37,"y":800.0,"isDepot":false,"degree":3},{"id":5,"x":60.0,"y":60.0,"isDepot":false,"degree":1}],"edges":[{"id":0,"a":0,"b":2,"dir":2,"cat":"C","cost":200,"length":0,"req":0,"label":"#0 | cost=200s len=0m req=0"},{"id":1,"a":0,"b":3,"dir":1,"cat":"O","cost":69,"length":292,"req":30,"label":"#1 | cost=69s len=292m req=30"},{"id":2,"a":2,"b":5,"dir":2,"cat":"C","cost":183,"length":0,"req":0,"label":"#2 | cost=183s len=0m req=0"},{"id":3,"a":3,"b":4,"dir":2,"cat":"M","cost":102,"length":422,"req":30,"label":"#3 | cost=102s len=422m req=30"},{"id":4,"a":1,"b":4,"dir":2,"cat":"C","cost":35,"length":0,"req":0,"label":"#4 | cost=35s len=0m req=0"},{"id":5,"a":2,"b":4,"dir":2,"cat":"M","cost":25,"length":68,"req":10,"label":"#5 | cost=25s len=68m req=10"},{"id":6,"a":0,"b":1,"dir":2,"cat":"O","cost":56,"length":182,"req":30,"label":"#6 | cost=56s len=182m req=30"},{"id":7,"a":1,"b":2,"dir":2,"cat":"O","cost":200,"length":370,"req":20,"label":"#7 | cost=200s len=370m req=20"},{"id":8,"a":2,"b":3,"dir":2,"cat":"O","cost":130,"length":476,"req":20,"label":"#8 | cost=130s len=476m req=20"},{"id":9,"a":1,"b":3,"dir":2,"cat":"O","cost":137,"length":349,"req":20,"label":"#9 | cost=137s len=349m req=20"}]};
 const sol  = {"vehicles":[{"id":0,"type":"L","segments":[{"f":0,"t":3,"s":1,"c":true,"t0":0,"t1":69},{"f":3,"t":4,"s":3,"c":true,"t0":69,"t1":171},{"f":4,"t":1,"s":4,"c":false,"t0":171,"t1":206},{"f":1,"t":0,"s":6,"c":true,"t0":206,"t1":262}],"totalTime":262},{"id":1,"type":"S","segments":[{"f":0,"t":1,"s":6,"c":false,"t0":0,"t1":56},{"f":1,"t":4,"s":4,"c":false,"t0":56,"t1":91},{"f":4,"t":2,"s":5,"c":true,"t0":91,"t1":116},{"f":2,"t":4,"s":5,"c":true,"t0":116,"t1":141},{"f":4,"t":1,"s":4,"c":false,"t0":141,"t1":176},{"f":1,"t":0,"s":6,"c":false,"t0":176,"t1":232}],"totalTime":232},{"id":2,"type":"M","segments":[{"f":0,"t":3,"s":1,"c":false,"t0":0,"t1":69},{"f":3,"t":1,"s":9,"c":true,"t0":69,"t1":206},{"f":1,"t":0,"s":6,"c":false,"t0":206,"t1":262}],"totalTime":262}],"maxTime":262};
 const meta = data.meta;
 const hasSol = sol !== null;
 const graph = document.getElementById("graph");
+const isLarge = meta.N > 50;
 
-// ====== VIEWBOX / ZOOM / PAN ======
+// ====== EDGE THICKNESS ======
+// Map cost to stroke width: low cost → thin, high cost → thick
+const COST_MIN=meta.minCost, COST_MAX=Math.max(meta.maxCost,COST_MIN+1);
+function edgeWidth(cost,cat){
+  const t=(cost-COST_MIN)/(COST_MAX-COST_MIN); // 0..1
+  if(cat==="C") return 1.2+t*2.0;   // connectors: 1.2 .. 3.2
+  if(cat==="M") return 2.5+t*5.5;   // mandatory: 2.5 .. 8
+  return 1.8+t*3.5;                  // optional: 1.8 .. 5.3
+}
+
+// ====== VIEWBOX / ZOOM / PAN (smooth, map-like) ======
 const vb = { x:0, y:0, w:meta.viewWidth, h:meta.viewHeight };
 const VB_INIT = { x:0, y:0, w:meta.viewWidth, h:meta.viewHeight };
-function setVB(){ graph.setAttribute("viewBox", vb.x+" "+vb.y+" "+vb.w+" "+vb.h); }
+const ZOOM_MIN=0.008, ZOOM_MAX=20; // ratio vs initial
+
+function setVB(){ graph.setAttribute("viewBox", vb.x+" "+vb.y+" "+vb.w+" "+vb.h); updateLOD(); updateMinimap(); updateZoomPct(); }
+
+function zoomLevel(){ return VB_INIT.w / vb.w; }
+
+function updateZoomPct(){
+  document.getElementById("zoomPct").textContent=Math.round(zoomLevel()*100)+"%";
+}
+
+// Smooth animated zoom
+let animZoomId=null;
+function smoothZoom(targetVB, dur){
+  if(animZoomId) cancelAnimationFrame(animZoomId);
+  const sx=vb.x, sy=vb.y, sw=vb.w, sh=vb.h;
+  const start=performance.now();
+  dur=dur||220;
+  function step(ts){
+    let p=(ts-start)/dur;
+    if(p>=1){ p=1; animZoomId=null; }
+    else animZoomId=requestAnimationFrame(step);
+    // ease-out cubic
+    const t=1-Math.pow(1-p,3);
+    vb.x=sx+(targetVB.x-sx)*t; vb.y=sy+(targetVB.y-sy)*t;
+    vb.w=sw+(targetVB.w-sw)*t; vb.h=sh+(targetVB.h-sh)*t;
+    setVB();
+  }
+  animZoomId=requestAnimationFrame(step);
+}
+
+function zoomTo(factor, cx, cy, animate){
+  const nw=vb.w*factor, nh=vb.h*factor;
+  if(nw/VB_INIT.w>1/ZOOM_MIN || nw/VB_INIT.w<1/ZOOM_MAX) return;
+  const tv={x:vb.x+(vb.w-nw)*cx, y:vb.y+(vb.h-nh)*cy, w:nw, h:nh};
+  if(animate) smoothZoom(tv, 180);
+  else { vb.x=tv.x; vb.y=tv.y; vb.w=tv.w; vb.h=tv.h; setVB(); }
+}
+
 setVB();
 
 let isPanning=false, didPan=false;
 let panSt={x:0,y:0}, panVB={x:0,y:0};
 
+// Scroll-to-zoom (pixel-precise, centered on cursor)
 graph.addEventListener("wheel", function(e){
   e.preventDefault();
-  const f = e.deltaY>0?1.12:1/1.12;
-  const nw=vb.w*f, nh=vb.h*f;
-  if(nw/VB_INIT.w>8||nw/VB_INIT.w<0.05) return;
+  // Normalize delta for different browsers/trackpads
+  let d = e.deltaY;
+  if(e.deltaMode===1) d*=36; // lines
+  const f = Math.pow(1.0015, d); // smoother exponential
   const r=graph.getBoundingClientRect();
   const mx=(e.clientX-r.left)/r.width, my=(e.clientY-r.top)/r.height;
-  vb.x+=(vb.w-nw)*mx; vb.y+=(vb.h-nh)*my; vb.w=nw; vb.h=nh;
-  setVB();
+  zoomTo(f, mx, my, false);
 }, {passive:false});
 
+// Mouse pan
 graph.addEventListener("mousedown", function(e){
   if(e.button!==0) return;
   isPanning=true; didPan=false;
   panSt={x:e.clientX,y:e.clientY}; panVB={x:vb.x,y:vb.y};
+  e.preventDefault();
 });
 window.addEventListener("mousemove", function(e){
   if(!isPanning) return;
@@ -220,24 +288,100 @@ window.addEventListener("mousemove", function(e){
   graph.classList.add("panning");
 });
 window.addEventListener("mouseup", function(){
-  isPanning=false;
-  graph.classList.remove("panning");
+  isPanning=false; graph.classList.remove("panning");
 });
 
-document.getElementById("zoomIn").addEventListener("click", function(){
-  const f=1/1.3, nw=vb.w*f, nh=vb.h*f;
-  vb.x+=(vb.w-nw)*0.5; vb.y+=(vb.h-nh)*0.5; vb.w=nw; vb.h=nh; setVB();
-});
-document.getElementById("zoomOut").addEventListener("click", function(){
-  const f=1.3, nw=vb.w*f, nh=vb.h*f;
-  vb.x+=(vb.w-nw)*0.5; vb.y+=(vb.h-nh)*0.5; vb.w=nw; vb.h=nh; setVB();
-});
+// Touch: pan + pinch-to-zoom
+let touches=[], touchDist=0, touchMid={x:0,y:0}, touchVB={x:0,y:0,w:0,h:0};
+
+function getTouchDist(ts){ return Math.hypot(ts[0].clientX-ts[1].clientX, ts[0].clientY-ts[1].clientY); }
+function getTouchMid(ts){
+  return {x:(ts[0].clientX+ts[1].clientX)/2, y:(ts[0].clientY+ts[1].clientY)/2};
+}
+
+graph.addEventListener("touchstart", function(e){
+  e.preventDefault();
+  touches=Array.from(e.touches);
+  if(touches.length===1){
+    isPanning=true; didPan=false;
+    panSt={x:touches[0].clientX,y:touches[0].clientY}; panVB={x:vb.x,y:vb.y};
+  }
+  if(touches.length===2){
+    isPanning=false;
+    touchDist=getTouchDist(touches);
+    touchMid=getTouchMid(touches);
+    touchVB={x:vb.x,y:vb.y,w:vb.w,h:vb.h};
+  }
+}, {passive:false});
+graph.addEventListener("touchmove", function(e){
+  e.preventDefault();
+  const ts=Array.from(e.touches);
+  if(ts.length===1 && isPanning){
+    const dx=ts[0].clientX-panSt.x, dy=ts[0].clientY-panSt.y;
+    if(Math.hypot(dx,dy)>3) didPan=true;
+    const r=graph.getBoundingClientRect();
+    vb.x=panVB.x - dx/r.width*vb.w;
+    vb.y=panVB.y - dy/r.height*vb.h;
+    setVB();
+  }
+  if(ts.length===2){
+    const d2=getTouchDist(ts);
+    const m2=getTouchMid(ts);
+    const scale=touchDist/d2;
+    const nw=touchVB.w*scale, nh=touchVB.h*scale;
+    if(nw/VB_INIT.w>1/ZOOM_MIN || nw/VB_INIT.w<1/ZOOM_MAX) return;
+    const r=graph.getBoundingClientRect();
+    const mx=(m2.x-r.left)/r.width, my=(m2.y-r.top)/r.height;
+    vb.w=nw; vb.h=nh;
+    vb.x=touchVB.x+(touchVB.w-nw)*mx + (touchMid.x-m2.x)/r.width*nw;
+    vb.y=touchVB.y+(touchVB.h-nh)*my + (touchMid.y-m2.y)/r.height*nh;
+    setVB();
+  }
+}, {passive:false});
+graph.addEventListener("touchend", function(){ isPanning=false; });
+
+// Button zoom (animated)
+document.getElementById("zoomIn").addEventListener("click", function(){ zoomTo(1/1.5, 0.5, 0.5, true); });
+document.getElementById("zoomOut").addEventListener("click", function(){ zoomTo(1.5, 0.5, 0.5, true); });
 document.getElementById("zoomReset").addEventListener("click", function(){
-  vb.x=VB_INIT.x; vb.y=VB_INIT.y; vb.w=VB_INIT.w; vb.h=VB_INIT.h; setVB();
+  smoothZoom({x:VB_INIT.x,y:VB_INIT.y,w:VB_INIT.w,h:VB_INIT.h}, 280);
 });
-graph.addEventListener("dblclick", function(){
-  vb.x=VB_INIT.x; vb.y=VB_INIT.y; vb.w=VB_INIT.w; vb.h=VB_INIT.h; setVB();
+graph.addEventListener("dblclick", function(e){
+  e.preventDefault();
+  const r=graph.getBoundingClientRect();
+  const mx=(e.clientX-r.left)/r.width, my=(e.clientY-r.top)/r.height;
+  zoomTo(1/2, mx, my, true);
 });
+
+// Fit to content (zoom to bounding box of all nodes with padding)
+function fitContent(){
+  if(!data.nodes.length) return;
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(const n of data.nodes){ x0=Math.min(x0,n.x); y0=Math.min(y0,n.y); x1=Math.max(x1,n.x); y1=Math.max(y1,n.y); }
+  const pad=60;
+  smoothZoom({x:x0-pad, y:y0-pad, w:x1-x0+2*pad, h:y1-y0+2*pad}, 320);
+}
+document.getElementById("zoomFit").addEventListener("click", fitContent);
+
+// Keyboard zoom (+/- keys, also in graph mode)
+document.addEventListener("keydown", function(e){
+  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"||e.target.tagName==="TEXTAREA") return;
+  if(e.code==="Equal"||e.code==="NumpadAdd"){ e.preventDefault(); zoomTo(1/1.4,0.5,0.5,true); }
+  if(e.code==="Minus"||e.code==="NumpadSubtract"){ e.preventDefault(); zoomTo(1.4,0.5,0.5,true); }
+  if(e.code==="Digit0"||e.code==="Numpad0"){ e.preventDefault(); smoothZoom({x:VB_INIT.x,y:VB_INIT.y,w:VB_INIT.w,h:VB_INIT.h},280); }
+  if(e.code==="KeyF"){ e.preventDefault(); fitContent(); }
+});
+
+// ====== LEVEL OF DETAIL ======
+// Hide labels when zoomed out, show when zoomed in
+function updateLOD(){
+  const z=zoomLevel();
+  const showEdgeLbl = z > (isLarge ? 1.8 : 0.7);
+  const showNodeLbl = z > (isLarge ? 0.9 : 0.4);
+  document.getElementById("edgeLabelLayer").style.opacity = showEdgeLbl ? "1" : "0";
+  document.getElementById("edgeLabelLayer").style.pointerEvents = showEdgeLbl ? "auto" : "none";
+  document.getElementById("nodeLabelLayer").style.opacity = showNodeLbl ? "1" : "0";
+}
 
 // ====== STATS PANEL ======
 const statsEl = document.getElementById("stats");
@@ -253,7 +397,7 @@ addStat("Optional", meta.categoryCounts.O);
 addStat("Connector", meta.categoryCounts.C);
 addStat("Time Limit (T)", meta.T+"s");
 
-// ====== BUILD GRAPH ======
+// ====== BUILD GRAPH (edges with cost-based thickness) ======
 const nodeById = new Map();
 for(const n of data.nodes) nodeById.set(n.id, n);
 
@@ -264,12 +408,19 @@ function setInfo(t){ document.getElementById("info").textContent=t; }
 const NS="http://www.w3.org/2000/svg";
 const edgeEntries=[], edgeLabelEls={};
 
+const catColors={"M":"var(--mandatory)","O":"var(--optional)","C":"var(--connector)"};
+
 for(const e of data.edges){
   const a=nodeById.get(e.a), b=nodeById.get(e.b);
   const line=document.createElementNS(NS,"line");
   line.setAttribute("x1",a.x); line.setAttribute("y1",a.y);
   line.setAttribute("x2",b.x); line.setAttribute("y2",b.y);
-  line.classList.add("edge","edge-cat-"+e.cat);
+  line.classList.add("edge");
+  const sw=edgeWidth(e.cost, e.cat);
+  line.setAttribute("stroke", catColors[e.cat]||"#7e889a");
+  line.setAttribute("stroke-width", sw.toFixed(1));
+  line.dataset.baseWidth=sw.toFixed(1);
+  if(e.cat==="C") line.setAttribute("stroke-dasharray","6 4");
   if(e.dir===1) line.setAttribute("marker-end","url(#arrow-end)");
   else{ line.setAttribute("marker-start","url(#arrow-start)"); line.setAttribute("marker-end","url(#arrow-end)"); }
 
@@ -285,7 +436,7 @@ for(const e of data.edges){
   const txt=document.createElementNS(NS,"text");
   const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
   const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1;
-  const nx=-dy/d, ny=dx/d, off=8+(e.id%5)*2;
+  const nx=-dy/d, ny=dx/d, off=sw/2+6+(e.id%3)*2;
   txt.setAttribute("x",mx+nx*off); txt.setAttribute("y",my+ny*off);
   txt.classList.add("edge-label"); txt.textContent=e.label;
   document.getElementById("edgeLabelLayer").appendChild(txt);
@@ -298,7 +449,7 @@ const nodeEntries=[];
 for(const n of data.nodes){
   const c=document.createElementNS(NS,"circle");
   c.setAttribute("cx",n.x); c.setAttribute("cy",n.y);
-  c.setAttribute("r",n.isDepot?8.5:6.2);
+  c.setAttribute("r",n.isDepot?8.5:5.5);
   c.classList.add("node"); if(n.isDepot) c.classList.add("is-depot");
 
   c.addEventListener("click", function(ev){
@@ -320,6 +471,57 @@ for(const n of data.nodes){
 graph.addEventListener("click", function(){
   if(didPan) return; clearSel();
   setInfo("Click a node or street to inspect details.");
+});
+
+// ====== MINIMAP ======
+(function buildMinimap(){
+  const mmSvg=document.getElementById("mmSvg");
+  const mmEdges=document.getElementById("mmEdges");
+  const mmNodes=document.getElementById("mmNodes");
+  // Set viewBox to match full extent
+  let x0=0,y0=0,x1=meta.viewWidth,y1=meta.viewHeight;
+  if(data.nodes.length){
+    x0=Infinity;y0=Infinity;x1=-Infinity;y1=-Infinity;
+    for(const n of data.nodes){x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x);y1=Math.max(y1,n.y);}
+    const p=30; x0-=p;y0-=p;x1+=p;y1+=p;
+  }
+  mmSvg.setAttribute("viewBox", x0+" "+y0+" "+(x1-x0)+" "+(y1-y0));
+  window._mmBounds={x0:x0,y0:y0,w:x1-x0,h:y1-y0};
+  // Draw simplified edges
+  for(const e of data.edges){
+    const a=nodeById.get(e.a), b=nodeById.get(e.b);
+    const l=document.createElementNS(NS,"line");
+    l.setAttribute("x1",a.x);l.setAttribute("y1",a.y);
+    l.setAttribute("x2",b.x);l.setAttribute("y2",b.y);
+    l.setAttribute("stroke",e.cat==="M"?"#cc2a2a":e.cat==="O"?"#1564c0":"#b5bcc8");
+    l.setAttribute("stroke-width", e.cat==="C"?"1":"2");
+    l.setAttribute("opacity","0.6");
+    mmEdges.appendChild(l);
+  }
+  for(const n of data.nodes){
+    const c=document.createElementNS(NS,"circle");
+    c.setAttribute("cx",n.x);c.setAttribute("cy",n.y);
+    c.setAttribute("r",n.isDepot?"5":"2.5");
+    c.setAttribute("fill",n.isDepot?"#ff9a2f":"#2d5f5d");
+    mmNodes.appendChild(c);
+  }
+})();
+
+function updateMinimap(){
+  const vp=document.getElementById("mmViewport");
+  const b=window._mmBounds;
+  if(!b) return;
+  vp.setAttribute("x",vb.x); vp.setAttribute("y",vb.y);
+  vp.setAttribute("width",vb.w); vp.setAttribute("height",vb.h);
+}
+
+// Click minimap to navigate
+document.getElementById("minimap").addEventListener("click", function(e){
+  const r=this.querySelector("svg").getBoundingClientRect();
+  const b=window._mmBounds;
+  const rx=(e.clientX-r.left)/r.width, ry=(e.clientY-r.top)/r.height;
+  const cx=b.x0+b.w*rx, cy=b.y0+b.h*ry;
+  smoothZoom({x:cx-vb.w/2, y:cy-vb.h/2, w:vb.w, h:vb.h}, 200);
 });
 
 // ====== FILTERS ======
@@ -390,7 +592,8 @@ for(const e of data.edges){
   const line=document.createElementNS(NS,"line");
   line.setAttribute("x1",a.x); line.setAttribute("y1",a.y);
   line.setAttribute("x2",b.x); line.setAttribute("y2",b.y);
-  line.setAttribute("stroke-linecap","round"); line.setAttribute("stroke-width","7");
+  line.setAttribute("stroke-linecap","round");
+  line.setAttribute("stroke-width", Math.max(7, edgeWidth(e.cost,e.cat)+2).toFixed(1));
   line.setAttribute("opacity","0"); line.setAttribute("pointer-events","none");
   document.getElementById("animEdgeOverlay").appendChild(line);
   edgeOvEls[e.id]=line;
@@ -401,19 +604,22 @@ const vDots=[];
 if(hasSol){
   for(const v of sol.vehicles){
     const g=document.createElementNS(NS,"g");
+    const shadow=document.createElementNS(NS,"circle");
+    shadow.setAttribute("r","16"); shadow.setAttribute("fill","rgba(0,0,0,0.12)");
+    shadow.setAttribute("cx","2"); shadow.setAttribute("cy","2");
     const bg=document.createElementNS(NS,"circle");
-    bg.setAttribute("r","13"); bg.setAttribute("fill","rgba(255,255,255,0.85)");
+    bg.setAttribute("r","14"); bg.setAttribute("fill","rgba(255,255,255,0.9)");
     bg.setAttribute("stroke","none");
     const circ=document.createElementNS(NS,"circle");
-    circ.setAttribute("r","10");
+    circ.setAttribute("r","11");
     circ.setAttribute("stroke",VCOLS[v.id%VCOLS.length]);
     circ.setAttribute("stroke-width","3"); circ.setAttribute("fill",ACT_COL.depot);
     const txt=document.createElementNS(NS,"text");
-    txt.setAttribute("text-anchor","middle"); txt.setAttribute("dy","4");
-    txt.setAttribute("font-size","10"); txt.setAttribute("font-weight","bold");
+    txt.setAttribute("text-anchor","middle"); txt.setAttribute("dy","4.5");
+    txt.setAttribute("font-size","11"); txt.setAttribute("font-weight","bold");
     txt.setAttribute("fill","#fff"); txt.setAttribute("pointer-events","none");
     txt.textContent=String(v.id);
-    g.appendChild(bg); g.appendChild(circ); g.appendChild(txt);
+    g.appendChild(shadow); g.appendChild(bg); g.appendChild(circ); g.appendChild(txt);
     g.style.display="none";
     document.getElementById("vehicleLayer").appendChild(g);
     vDots.push({g:g, bg:bg, circ:circ, txt:txt, v:v});
@@ -487,8 +693,8 @@ function updateAnim(t){
     vd.g.setAttribute("transform","translate("+st.x.toFixed(1)+","+st.y.toFixed(1)+")");
     vd.g.style.display="";
     vd.circ.setAttribute("fill", ACT_COL[st.status]);
-    vd.bg.setAttribute("fill", st.status==="cleaning"?"rgba(34,197,94,0.18)":
-                                st.status==="deadheading"?"rgba(245,158,11,0.15)":"rgba(148,163,184,0.12)");
+    vd.bg.setAttribute("fill", st.status==="cleaning"?"rgba(34,197,94,0.2)":
+                                st.status==="deadheading"?"rgba(245,158,11,0.18)":"rgba(148,163,184,0.15)");
   }
   // Edge overlays
   const es=computeEdgeStates(t);
@@ -571,8 +777,9 @@ document.getElementById("timeline").addEventListener("input", function(){
   if(!animPlaying) updateAnim(t);
 });
 
-// Keyboard shortcuts
+// Keyboard shortcuts (animation)
 document.addEventListener("keydown", function(e){
+  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"||e.target.tagName==="TEXTAREA") return;
   if(activeTab!=="anim"||!hasSol) return;
   if(e.code==="Space"){ e.preventDefault(); togglePlay(); }
   if(e.code==="KeyR"){ resetAnim(); }
@@ -598,6 +805,15 @@ if(!hasSol){
     "<p>No solution file loaded.</p>"+
     "<p style='font-size:12px'>Use <code>--solution &lt;file&gt;</code> to animate a solution.</p></div>";
 }
+
+// For large graphs, start zoomed out and auto-hide labels
+if(isLarge){
+  toggleEL.checked=false;
+  applyFilters();
+}
+
+// Initial LOD + minimap update
+updateLOD(); updateMinimap();
 </script>
 </body>
 </html>

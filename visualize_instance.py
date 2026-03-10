@@ -9,6 +9,7 @@ Usage:
 """
 
 import argparse
+import collections
 import json
 import math
 import random
@@ -137,7 +138,7 @@ def build_solution_data(instance, routes, clean_per_vehicle):
 
 
 # ---------------------------------------------------------------------------
-# Layout
+# Layout – cost-weighted force-directed
 # ---------------------------------------------------------------------------
 
 def _normalize_points(points, width, height, pad):
@@ -153,48 +154,120 @@ def _normalize_points(points, width, height, pad):
     return [(pad + (x - min_x) * scale, pad + (y - min_y) * scale) for x, y in points]
 
 
-def _force_layout(instance, width, height, seed=42, iterations=240):
+def _force_layout(instance, width, height, seed=42):
+    """
+    Cost-weighted Fruchterman-Reingold layout.
+
+    - Edge rest length is proportional to cost (higher cost = longer edge).
+    - For large graphs, more iterations + higher canvas area.
+    """
     n = instance["N"]
+    streets = instance["streets"]
     rng = random.Random(seed)
     pad = 60.0
+
     if n == 1:
         return [(width / 2.0, height / 2.0)]
 
-    cx, cy = width / 2.0, height / 2.0
-    radius = min(width, height) * 0.35
-    pos = []
-    for i in range(n):
-        angle = 2.0 * math.pi * i / n
-        pos.append([cx + radius * math.cos(angle) + rng.uniform(-8, 8),
-                     cy + radius * math.sin(angle) + rng.uniform(-8, 8)])
+    # Adaptive iteration count
+    iterations = min(600, max(300, n + 100))
 
-    springs = [(s["a"], s["b"]) for s in instance["streets"]]
+    # Compute per-edge rest lengths from cost
+    costs = [s["cost"] for s in streets if s["cost"] > 0]
+    avg_cost = sum(costs) / len(costs) if costs else 1.0
+
+    # Build adjacency (for BFS-initialised placement)
+    adj = collections.defaultdict(set)
+    for s in streets:
+        adj[s["a"]].add(s["b"])
+        adj[s["b"]].add(s["a"])
+
+    # Ideal spacing
     area = max((width - 2 * pad) * (height - 2 * pad), 1.0)
     k = math.sqrt(area / float(n))
-    temperature = min(width, height) * 0.12
 
-    for _ in range(iterations):
+    # Initial placement: BFS-layered from depot gives better starts than circle
+    depot = instance.get("S", 0)
+    pos = [[0.0, 0.0] for _ in range(n)]
+    visited = [False] * n
+    queue = collections.deque()
+    queue.append(depot)
+    visited[depot] = True
+    cx, cy = width / 2.0, height / 2.0
+    pos[depot] = [cx, cy]
+    layer_idx = 0
+
+    while queue:
+        layer_size = len(queue)
+        ring_nodes = []
+        for _ in range(layer_size):
+            u = queue.popleft()
+            ring_nodes.append(u)
+            for v in adj[u]:
+                if not visited[v]:
+                    visited[v] = True
+                    queue.append(v)
+        # Place layer nodes in a ring
+        ring_radius = k * (layer_idx + 0.5)
+        for i, u in enumerate(ring_nodes):
+            if u == depot and layer_idx == 0:
+                continue
+            angle = 2.0 * math.pi * i / max(len(ring_nodes), 1) + layer_idx * 0.4
+            pos[u] = [cx + ring_radius * math.cos(angle) + rng.uniform(-5, 5),
+                       cy + ring_radius * math.sin(angle) + rng.uniform(-5, 5)]
+        layer_idx += 1
+
+    # Place any disconnected nodes
+    for i in range(n):
+        if not visited[i]:
+            pos[i] = [cx + rng.uniform(-width * 0.3, width * 0.3),
+                       cy + rng.uniform(-height * 0.3, height * 0.3)]
+
+    # Spring data: (u, v, rest_length)
+    springs = []
+    for s in streets:
+        rest = k * max(0.4, min(2.5, s["cost"] / avg_cost))
+        springs.append((s["a"], s["b"], rest))
+
+    # Compute node degrees for degree-weighted repulsion
+    degree = [0] * n
+    for s in streets:
+        degree[s["a"]] += 1
+        degree[s["b"]] += 1
+
+    temperature = min(width, height) * 0.15
+
+    for _it in range(iterations):
         disp = [[0.0, 0.0] for _ in range(n)]
+
+        # Repulsive forces (all pairs, boosted for high-degree nodes)
         for i in range(n):
             xi, yi = pos[i]
             for j in range(i + 1, n):
                 dx = xi - pos[j][0]
                 dy = yi - pos[j][1]
                 dist = math.hypot(dx, dy) + 1e-9
-                force = (k * k) / dist
+                # High-degree nodes repel more to reduce local clutter
+                deg_factor = 1.0 + 0.25 * (degree[i] + degree[j])
+                force = (k * k) * deg_factor / dist
                 fx = (dx / dist) * force
                 fy = (dy / dist) * force
                 disp[i][0] += fx; disp[i][1] += fy
                 disp[j][0] -= fx; disp[j][1] -= fy
-        for u, v in springs:
+
+        # Attractive forces along edges (cost-weighted rest length)
+        for u, v, rest in springs:
             dx = pos[u][0] - pos[v][0]
             dy = pos[u][1] - pos[v][1]
             dist = math.hypot(dx, dy) + 1e-9
-            force = (dist * dist) / k
+            # Spring: pulls toward rest length
+            force = (dist - rest) * (dist / (k * 1.5))
             fx = (dx / dist) * force
             fy = (dy / dist) * force
             disp[u][0] -= fx; disp[u][1] -= fy
             disp[v][0] += fx; disp[v][1] += fy
+
+        # Apply displacement
         for i in range(n):
             dx, dy = disp[i]
             dl = math.hypot(dx, dy)
@@ -204,8 +277,9 @@ def _force_layout(instance, width, height, seed=42, iterations=240):
                 pos[i][1] += (dy / dl) * step
             pos[i][0] = min(width - pad, max(pad, pos[i][0]))
             pos[i][1] = min(height - pad, max(pad, pos[i][1]))
-        temperature *= 0.96
-        if temperature < 0.5:
+
+        temperature *= 0.97
+        if temperature < 0.3:
             break
 
     return [(p[0], p[1]) for p in pos]
@@ -233,6 +307,11 @@ def build_view_data(instance, points, width, height):
         nodes.append({"id": i, "x": round(x, 2), "y": round(y, 2),
                        "isDepot": i == depot, "degree": degree[i]})
 
+    # Compute cost range for JS-side thickness scaling
+    costs_list = [s["cost"] for s in streets]
+    min_cost = min(costs_list) if costs_list else 0
+    max_cost = max(costs_list) if costs_list else 1
+
     edges = []
     for s in streets:
         edges.append({
@@ -252,6 +331,7 @@ def build_view_data(instance, points, width, height):
             "fleet": [v["type"] for v in vehicles],
             "categoryCounts": cat_counts,
             "viewWidth": width, "viewHeight": height,
+            "minCost": min_cost, "maxCost": max_cost,
         },
         "nodes": nodes, "edges": edges,
     }
@@ -309,16 +389,16 @@ hr.sep{border:0;border-top:1px solid #e8eef8;margin:10px 0}
 .tab-btn.active{color:var(--tab-active);border-bottom-color:var(--tab-active);font-weight:700}
 .tab-btn:hover:not(.active){background:#eef3fc}
 .tab-btn:disabled{opacity:.35;cursor:not-allowed}
-svg{display:block;flex:1;min-height:0;
-  background:linear-gradient(0deg,transparent 23px,var(--grid) 24px),
-    linear-gradient(90deg,transparent 23px,var(--grid) 24px),#fff;
-  background-size:24px 24px;cursor:grab}
-svg.panning{cursor:grabbing}
-.edge{stroke-linecap:round;opacity:.9;cursor:pointer}
-.edge-cat-M{stroke:var(--mandatory);stroke-width:4.4}
-.edge-cat-O{stroke:var(--optional);stroke-width:3}
-.edge-cat-C{stroke:var(--connector);stroke-width:2.2;stroke-dasharray:6 4}
-.edge.selected{stroke:var(--sel);stroke-width:5.3;opacity:1}
+svg#graph{display:block;flex:1;min-height:0;cursor:grab;background:#fff;touch-action:none}
+svg#graph.panning{cursor:grabbing}
+.edge{stroke-linecap:round;opacity:.88;cursor:pointer;transition:opacity .12s}
+.edge.selected{stroke:var(--sel)!important;opacity:1}
+.edge-dim{opacity:.06!important}
+.edge-highlight{opacity:1!important;filter:drop-shadow(0 0 3px rgba(0,0,0,.35))}
+.node-dim{opacity:.18!important;transition:opacity .12s}
+.node-label-dim{opacity:.08!important}
+.edge-label-dim{opacity:.03!important}
+.edge-label-highlight{opacity:1!important;font-weight:700;fill:#0a1628!important;stroke-width:4px!important;font-size:14px!important}
 .edge-label{font-size:11px;fill:#243149;paint-order:stroke;stroke:#fff;
   stroke-width:3px;stroke-linejoin:round;pointer-events:none;user-select:none}
 .node{fill:var(--node);stroke:#fff;stroke-width:2px;cursor:pointer}
@@ -326,8 +406,8 @@ svg.panning{cursor:grabbing}
 .node.selected{stroke:#101010;stroke-width:3.6px}
 .node-label{font-size:12px;fill:#0f1f3f;font-weight:600;paint-order:stroke;
   stroke:#fff;stroke-width:3px;pointer-events:none;user-select:none}
-svg.anim-mode .edge{opacity:.25}
-svg.anim-mode .edge-label{opacity:.15}
+svg#graph.anim-mode .edge{opacity:.22}
+svg#graph.anim-mode .edge-label{opacity:.12}
 .anim-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;
   border-top:1px solid #e8eef8;background:#f9fbff;font-size:13px}
 .anim-bar button{padding:5px 14px;border:1px solid #c5cfe0;border-radius:6px;
@@ -335,11 +415,20 @@ svg.anim-mode .edge-label{opacity:.15}
 .anim-bar button:hover{background:#eef3fc}
 #timeline{flex:1;height:6px;cursor:pointer;accent-color:var(--tab-active)}
 .speed-sel{padding:3px 8px;border:1px solid #c5cfe0;border-radius:4px;font-size:12px}
-.zoom-btns{position:absolute;top:48px;right:12px;display:flex;flex-direction:column;gap:4px;z-index:5}
-.zoom-btns button{width:32px;height:32px;border:1px solid #d0d8e8;border-radius:6px;
-  background:rgba(255,255,255,.92);cursor:pointer;font-size:16px;font-weight:700;
-  color:var(--ink);display:flex;align-items:center;justify-content:center}
-.zoom-btns button:hover{background:#e8eeff}
+.ctrl-strip{position:absolute;top:48px;right:12px;display:flex;flex-direction:column;gap:4px;z-index:5}
+.ctrl-strip button{width:34px;height:34px;border:1px solid #d0d8e8;border-radius:8px;
+  background:rgba(255,255,255,.94);cursor:pointer;font-size:16px;font-weight:700;
+  color:var(--ink);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.08);transition:background .12s}
+.ctrl-strip button:hover{background:#e8eeff}
+.zoom-pct{width:34px;text-align:center;font-size:10px;color:var(--muted);
+  font-weight:600;pointer-events:none;padding:2px 0}
+/* Minimap */
+.minimap{position:absolute;bottom:8px;right:8px;width:160px;height:108px;
+  border:1px solid #d0d8e8;border-radius:8px;background:rgba(255,255,255,.92);
+  box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;z-index:5;cursor:pointer}
+.minimap svg{width:100%;height:100%;background:#fafbfe}
+.minimap .mm-vp{fill:rgba(21,100,192,.12);stroke:var(--tab-active);stroke-width:2;rx:2;ry:2}
 .vehicle-card{font-size:12px;margin:5px 0;padding:7px 9px;border-radius:8px;
   border-left:4px solid;display:flex;align-items:center;gap:8px;background:#f9fbff}
 .v-dot{width:16px;height:16px;border-radius:50%;border:3px solid;flex-shrink:0}
@@ -353,7 +442,25 @@ svg.anim-mode .edge-label{opacity:.15}
 .progress-bar{height:8px;border-radius:4px;background:#e8eef8;margin:6px 0;overflow:hidden}
 .progress-fill{height:100%;border-radius:4px;background:var(--clean);transition:width .3s}
 .hidden{display:none!important}
-@media(max-width:960px){.wrap{grid-template-columns:1fr}svg{height:62vh}}
+/* Sidebar animation controls */
+.side-transport{display:flex;flex-direction:column;gap:8px;padding:10px 0}
+.side-transport .time-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted)}
+.side-transport .time-current{font-weight:700;color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums}
+.side-transport .time-total{font-variant-numeric:tabular-nums}
+.side-slider{width:100%;height:8px;cursor:pointer;accent-color:var(--tab-active);margin:2px 0}
+.side-btns{display:flex;align-items:center;justify-content:center;gap:6px}
+.side-btns button{width:36px;height:36px;border:1px solid #d0d8e8;border-radius:10px;
+  background:var(--panel);cursor:pointer;font-size:15px;display:flex;align-items:center;
+  justify-content:center;color:var(--ink);transition:background .1s,transform .1s;
+  box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.side-btns button:hover{background:#eef3fc;transform:scale(1.06)}
+.side-btns button:active{transform:scale(.95)}
+.side-btns .play-btn{width:46px;height:46px;border-radius:50%;background:var(--tab-active);
+  color:#fff;font-size:18px;border:none;box-shadow:0 2px 8px rgba(21,100,192,.3)}
+.side-btns .play-btn:hover{background:#1258a8}
+.side-speed{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--muted)}
+.side-speed select{padding:3px 8px;border:1px solid #c5cfe0;border-radius:4px;font-size:12px}
+@media(max-width:960px){.wrap{grid-template-columns:1fr}svg#graph{height:62vh}}
 </style>
 </head>
 <body>
@@ -376,6 +483,7 @@ svg.anim-mode .edge-label{opacity:.15}
       <div class="row"><span class="legend-dot optional"></span>Optional street</div>
       <div class="row"><span class="legend-dot connector"></span>Connector street</div>
       <div class="row"><span class="legend-dot depot-dot"></span>Depot node</div>
+      <p style="font-size:11px;color:var(--muted);margin:4px 0 0">Edge thickness = traversal cost</p>
       <div class="info" id="info">Click a node or street to inspect details.</div>
     </div>
     <!-- Animation-mode sidebar -->
@@ -384,6 +492,36 @@ svg.anim-mode .edge-label{opacity:.15}
         <span><span class="action-swatch" style="background:var(--clean)"></span>Cleaning</span>
         <span><span class="action-swatch" style="background:var(--deadhead)"></span>Deadheading</span>
         <span><span class="action-swatch" style="background:var(--idle)"></span>At depot</span>
+      </div>
+      <hr class="sep">
+      <!-- Transport controls -->
+      <div class="side-transport">
+        <div class="time-row">
+          <span class="time-current" id="sideTimeCur">0s</span>
+          <span class="time-total" id="sideTimeTotal">/ 0s</span>
+        </div>
+        <input type="range" class="side-slider" id="sideTimeline" min="0" max="10000" value="0" step="1">
+        <div class="side-btns">
+          <button id="sideSkipBack" title="Back 5%">&#9664;&#9664;</button>
+          <button id="sideStepBack" title="Back 1%">&#9664;</button>
+          <button class="play-btn" id="sidePlayPause" title="Play / Pause">&#9654;</button>
+          <button id="sideStepFwd" title="Forward 1%">&#9654;</button>
+          <button id="sideSkipFwd" title="Forward 5%">&#9654;&#9654;</button>
+          <button id="sideReset" title="Reset" style="font-size:14px">&#8634;</button>
+        </div>
+        <div class="side-speed">
+          <span>Speed:</span>
+          <select id="sideSpeedSel">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="5">5x</option>
+            <option value="10">10x</option>
+            <option value="20">20x</option>
+            <option value="50">50x</option>
+          </select>
+        </div>
       </div>
       <hr class="sep">
       <div id="vehicleList"></div>
@@ -395,15 +533,17 @@ svg.anim-mode .edge-label{opacity:.15}
     </div>
   </div>
   <!-- ===== GRAPH CARD ===== -->
-  <div class="graph-card">
+  <div class="graph-card" id="graphCard">
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="graph">Graph View</button>
       <button class="tab-btn" data-tab="anim" id="animTabBtn">Solution Animation</button>
     </div>
-    <div class="zoom-btns">
-      <button id="zoomIn" title="Zoom In">+</button>
-      <button id="zoomOut" title="Zoom Out">&minus;</button>
-      <button id="zoomReset" title="Reset Zoom" style="font-size:12px">&#8634;</button>
+    <div class="ctrl-strip">
+      <button id="zoomIn" title="Zoom In (+ / scroll)">+</button>
+      <button id="zoomOut" title="Zoom Out (&minus; / scroll)">&minus;</button>
+      <div class="zoom-pct" id="zoomPct">100%</div>
+      <button id="zoomFit" title="Fit to content" style="font-size:13px">&#9974;</button>
+      <button id="zoomReset" title="Reset view" style="font-size:13px">&#8634;</button>
     </div>
     <svg id="graph" aria-label="Graph visualization">
       <defs>
@@ -416,13 +556,24 @@ svg.anim-mode .edge-label{opacity:.15}
           <path d="M8,0 L0,4 L8,8 Z" fill="currentColor"/>
         </marker>
       </defs>
-      <g id="edgeLayer"></g>
-      <g id="animEdgeOverlay"></g>
-      <g id="edgeLabelLayer"></g>
-      <g id="nodeLayer"></g>
-      <g id="nodeLabelLayer"></g>
-      <g id="vehicleLayer"></g>
+      <g id="worldGroup">
+        <g id="gridLayer"></g>
+        <g id="edgeLayer"></g>
+        <g id="animEdgeOverlay"></g>
+        <g id="edgeLabelLayer"></g>
+        <g id="nodeLayer"></g>
+        <g id="nodeLabelLayer"></g>
+        <g id="vehicleLayer"></g>
+      </g>
     </svg>
+    <!-- Minimap -->
+    <div class="minimap" id="minimap">
+      <svg id="mmSvg" preserveAspectRatio="xMidYMid meet">
+        <g id="mmEdges"></g>
+        <g id="mmNodes"></g>
+        <rect class="mm-vp" id="mmViewport" x="0" y="0" width="100" height="100"/>
+      </svg>
+    </div>
     <div class="anim-bar hidden" id="animBar">
       <button id="playPause">&#9654; Play</button>
       <button id="resetBtn">&#8634;</button>
@@ -450,31 +601,84 @@ const sol  = __SOLUTION_JSON__;
 const meta = data.meta;
 const hasSol = sol !== null;
 const graph = document.getElementById("graph");
+const isLarge = meta.N > 50;
 
-// ====== VIEWBOX / ZOOM / PAN ======
+// ====== EDGE THICKNESS ======
+// Map cost to stroke width: low cost → thin, high cost → thick
+const COST_MIN=meta.minCost, COST_MAX=Math.max(meta.maxCost,COST_MIN+1);
+function edgeWidth(cost,cat){
+  const t=(cost-COST_MIN)/(COST_MAX-COST_MIN); // 0..1
+  if(cat==="C") return 1.2+t*2.0;   // connectors: 1.2 .. 3.2
+  if(cat==="M") return 2.5+t*5.5;   // mandatory: 2.5 .. 8
+  return 1.8+t*3.5;                  // optional: 1.8 .. 5.3
+}
+
+let hoverActive=false;
+
+// ====== VIEWBOX / ZOOM / PAN (smooth, map-like) ======
 const vb = { x:0, y:0, w:meta.viewWidth, h:meta.viewHeight };
 const VB_INIT = { x:0, y:0, w:meta.viewWidth, h:meta.viewHeight };
-function setVB(){ graph.setAttribute("viewBox", vb.x+" "+vb.y+" "+vb.w+" "+vb.h); }
+const ZOOM_MIN=0.008, ZOOM_MAX=20; // ratio vs initial
+
+function setVB(){ graph.setAttribute("viewBox", vb.x+" "+vb.y+" "+vb.w+" "+vb.h); updateLOD(); updateMinimap(); updateZoomPct(); }
+
+function zoomLevel(){ return VB_INIT.w / vb.w; }
+
+function updateZoomPct(){
+  document.getElementById("zoomPct").textContent=Math.round(zoomLevel()*100)+"%";
+}
+
+// Smooth animated zoom
+let animZoomId=null;
+function smoothZoom(targetVB, dur){
+  if(animZoomId) cancelAnimationFrame(animZoomId);
+  const sx=vb.x, sy=vb.y, sw=vb.w, sh=vb.h;
+  const start=performance.now();
+  dur=dur||220;
+  function step(ts){
+    let p=(ts-start)/dur;
+    if(p>=1){ p=1; animZoomId=null; }
+    else animZoomId=requestAnimationFrame(step);
+    // ease-out cubic
+    const t=1-Math.pow(1-p,3);
+    vb.x=sx+(targetVB.x-sx)*t; vb.y=sy+(targetVB.y-sy)*t;
+    vb.w=sw+(targetVB.w-sw)*t; vb.h=sh+(targetVB.h-sh)*t;
+    setVB();
+  }
+  animZoomId=requestAnimationFrame(step);
+}
+
+function zoomTo(factor, cx, cy, animate){
+  const nw=vb.w*factor, nh=vb.h*factor;
+  if(nw/VB_INIT.w>1/ZOOM_MIN || nw/VB_INIT.w<1/ZOOM_MAX) return;
+  const tv={x:vb.x+(vb.w-nw)*cx, y:vb.y+(vb.h-nh)*cy, w:nw, h:nh};
+  if(animate) smoothZoom(tv, 180);
+  else { vb.x=tv.x; vb.y=tv.y; vb.w=tv.w; vb.h=tv.h; setVB(); }
+}
+
 setVB();
 
 let isPanning=false, didPan=false;
 let panSt={x:0,y:0}, panVB={x:0,y:0};
 
+// Scroll-to-zoom (pixel-precise, centered on cursor)
 graph.addEventListener("wheel", function(e){
   e.preventDefault();
-  const f = e.deltaY>0?1.12:1/1.12;
-  const nw=vb.w*f, nh=vb.h*f;
-  if(nw/VB_INIT.w>8||nw/VB_INIT.w<0.05) return;
+  // Normalize delta for different browsers/trackpads
+  let d = e.deltaY;
+  if(e.deltaMode===1) d*=36; // lines
+  const f = Math.pow(1.0015, d); // smoother exponential
   const r=graph.getBoundingClientRect();
   const mx=(e.clientX-r.left)/r.width, my=(e.clientY-r.top)/r.height;
-  vb.x+=(vb.w-nw)*mx; vb.y+=(vb.h-nh)*my; vb.w=nw; vb.h=nh;
-  setVB();
+  zoomTo(f, mx, my, false);
 }, {passive:false});
 
+// Mouse pan
 graph.addEventListener("mousedown", function(e){
   if(e.button!==0) return;
   isPanning=true; didPan=false;
   panSt={x:e.clientX,y:e.clientY}; panVB={x:vb.x,y:vb.y};
+  e.preventDefault();
 });
 window.addEventListener("mousemove", function(e){
   if(!isPanning) return;
@@ -487,24 +691,112 @@ window.addEventListener("mousemove", function(e){
   graph.classList.add("panning");
 });
 window.addEventListener("mouseup", function(){
-  isPanning=false;
-  graph.classList.remove("panning");
+  isPanning=false; graph.classList.remove("panning");
 });
 
-document.getElementById("zoomIn").addEventListener("click", function(){
-  const f=1/1.3, nw=vb.w*f, nh=vb.h*f;
-  vb.x+=(vb.w-nw)*0.5; vb.y+=(vb.h-nh)*0.5; vb.w=nw; vb.h=nh; setVB();
-});
-document.getElementById("zoomOut").addEventListener("click", function(){
-  const f=1.3, nw=vb.w*f, nh=vb.h*f;
-  vb.x+=(vb.w-nw)*0.5; vb.y+=(vb.h-nh)*0.5; vb.w=nw; vb.h=nh; setVB();
-});
+// Touch: pan + pinch-to-zoom
+let touches=[], touchDist=0, touchMid={x:0,y:0}, touchVB={x:0,y:0,w:0,h:0};
+
+function getTouchDist(ts){ return Math.hypot(ts[0].clientX-ts[1].clientX, ts[0].clientY-ts[1].clientY); }
+function getTouchMid(ts){
+  return {x:(ts[0].clientX+ts[1].clientX)/2, y:(ts[0].clientY+ts[1].clientY)/2};
+}
+
+graph.addEventListener("touchstart", function(e){
+  e.preventDefault();
+  touches=Array.from(e.touches);
+  if(touches.length===1){
+    isPanning=true; didPan=false;
+    panSt={x:touches[0].clientX,y:touches[0].clientY}; panVB={x:vb.x,y:vb.y};
+  }
+  if(touches.length===2){
+    isPanning=false;
+    touchDist=getTouchDist(touches);
+    touchMid=getTouchMid(touches);
+    touchVB={x:vb.x,y:vb.y,w:vb.w,h:vb.h};
+  }
+}, {passive:false});
+graph.addEventListener("touchmove", function(e){
+  e.preventDefault();
+  const ts=Array.from(e.touches);
+  if(ts.length===1 && isPanning){
+    const dx=ts[0].clientX-panSt.x, dy=ts[0].clientY-panSt.y;
+    if(Math.hypot(dx,dy)>3) didPan=true;
+    const r=graph.getBoundingClientRect();
+    vb.x=panVB.x - dx/r.width*vb.w;
+    vb.y=panVB.y - dy/r.height*vb.h;
+    setVB();
+  }
+  if(ts.length===2){
+    const d2=getTouchDist(ts);
+    const m2=getTouchMid(ts);
+    const scale=touchDist/d2;
+    const nw=touchVB.w*scale, nh=touchVB.h*scale;
+    if(nw/VB_INIT.w>1/ZOOM_MIN || nw/VB_INIT.w<1/ZOOM_MAX) return;
+    const r=graph.getBoundingClientRect();
+    const mx=(m2.x-r.left)/r.width, my=(m2.y-r.top)/r.height;
+    vb.w=nw; vb.h=nh;
+    vb.x=touchVB.x+(touchVB.w-nw)*mx + (touchMid.x-m2.x)/r.width*nw;
+    vb.y=touchVB.y+(touchVB.h-nh)*my + (touchMid.y-m2.y)/r.height*nh;
+    setVB();
+  }
+}, {passive:false});
+graph.addEventListener("touchend", function(){ isPanning=false; });
+
+// Button zoom (animated)
+document.getElementById("zoomIn").addEventListener("click", function(){ zoomTo(1/1.5, 0.5, 0.5, true); });
+document.getElementById("zoomOut").addEventListener("click", function(){ zoomTo(1.5, 0.5, 0.5, true); });
 document.getElementById("zoomReset").addEventListener("click", function(){
-  vb.x=VB_INIT.x; vb.y=VB_INIT.y; vb.w=VB_INIT.w; vb.h=VB_INIT.h; setVB();
+  smoothZoom({x:VB_INIT.x,y:VB_INIT.y,w:VB_INIT.w,h:VB_INIT.h}, 280);
 });
-graph.addEventListener("dblclick", function(){
-  vb.x=VB_INIT.x; vb.y=VB_INIT.y; vb.w=VB_INIT.w; vb.h=VB_INIT.h; setVB();
+graph.addEventListener("dblclick", function(e){
+  e.preventDefault();
+  const r=graph.getBoundingClientRect();
+  const mx=(e.clientX-r.left)/r.width, my=(e.clientY-r.top)/r.height;
+  zoomTo(1/2, mx, my, true);
 });
+
+// Fit to content (zoom to bounding box of all nodes with padding)
+function fitContent(){
+  if(!data.nodes.length) return;
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(const n of data.nodes){ x0=Math.min(x0,n.x); y0=Math.min(y0,n.y); x1=Math.max(x1,n.x); y1=Math.max(y1,n.y); }
+  const pad=60;
+  smoothZoom({x:x0-pad, y:y0-pad, w:x1-x0+2*pad, h:y1-y0+2*pad}, 320);
+}
+document.getElementById("zoomFit").addEventListener("click", fitContent);
+
+// Keyboard zoom (+/- keys, also in graph mode)
+document.addEventListener("keydown", function(e){
+  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"||e.target.tagName==="TEXTAREA") return;
+  if(e.code==="Equal"||e.code==="NumpadAdd"){ e.preventDefault(); zoomTo(1/1.4,0.5,0.5,true); }
+  if(e.code==="Minus"||e.code==="NumpadSubtract"){ e.preventDefault(); zoomTo(1.4,0.5,0.5,true); }
+  if(e.code==="Digit0"||e.code==="Numpad0"){ e.preventDefault(); smoothZoom({x:VB_INIT.x,y:VB_INIT.y,w:VB_INIT.w,h:VB_INIT.h},280); }
+  if(e.code==="KeyF"){ e.preventDefault(); fitContent(); }
+});
+
+// ====== LEVEL OF DETAIL ======
+// Hide labels when zoomed out, show when zoomed in
+function updateLOD(){
+  const z=zoomLevel();
+  const showEdgeLbl = z > (isLarge ? 1.8 : 0.7);
+  const showNodeLbl = z > (isLarge ? 0.9 : 0.4);
+  // When highlights are active, keep label layer visible (individual labels dimmed via class)
+  if(hoverActive){
+    document.getElementById("edgeLabelLayer").style.opacity = "1";
+    document.getElementById("edgeLabelLayer").style.pointerEvents = "auto";
+    document.getElementById("nodeLabelLayer").style.opacity = "1";
+  } else {
+    document.getElementById("edgeLabelLayer").style.opacity = showEdgeLbl ? "1" : "0";
+    document.getElementById("edgeLabelLayer").style.pointerEvents = showEdgeLbl ? "auto" : "none";
+    document.getElementById("nodeLabelLayer").style.opacity = showNodeLbl ? "1" : "0";
+  }
+  // Zoom-dependent edge opacity: reduce visual noise when zoomed out on large graphs
+  if(isLarge && !hoverActive){
+    const edgeOp = z < 0.25 ? 0.3 : z < 0.5 ? 0.5 : z < 0.8 ? 0.7 : 0.88;
+    document.getElementById("edgeLayer").style.opacity = edgeOp;
+  }
+}
 
 // ====== STATS PANEL ======
 const statsEl = document.getElementById("stats");
@@ -520,29 +812,108 @@ addStat("Optional", meta.categoryCounts.O);
 addStat("Connector", meta.categoryCounts.C);
 addStat("Time Limit (T)", meta.T+"s");
 
-// ====== BUILD GRAPH ======
+// ====== BUILD GRAPH (edges with cost-based thickness) ======
 const nodeById = new Map();
 for(const n of data.nodes) nodeById.set(n.id, n);
 
 let selected=null;
-function clearSel(){ if(selected){ selected.classList.remove("selected"); selected=null; } }
+function clearHighlight(){
+  hoverActive=false;
+  for(const ent of edgeEntries){ent.line.classList.remove("edge-dim","edge-highlight"); ent.label.classList.remove("edge-label-dim","edge-label-highlight");}
+  for(const ent of nodeEntries){ent.circle.classList.remove("node-dim"); ent.label.classList.remove("node-label-dim");}
+  updateLOD();
+}
+function highlightEdge(line, edgeA, edgeB){
+  hoverActive=true;
+  for(const ent of edgeEntries){ent.line.classList.add("edge-dim"); ent.label.classList.add("edge-label-dim");}
+  for(const ent of nodeEntries){ent.circle.classList.add("node-dim"); ent.label.classList.add("node-label-dim");}
+  line.classList.remove("edge-dim"); line.classList.add("edge-highlight");
+  // Show the label for the clicked edge
+  for(const ent of edgeEntries){
+    if(ent.line===line){ent.label.classList.remove("edge-label-dim"); ent.label.classList.add("edge-label-highlight");}
+  }
+  for(const ent of nodeEntries){
+    if(ent.node.id===edgeA||ent.node.id===edgeB){ent.circle.classList.remove("node-dim"); ent.label.classList.remove("node-label-dim");}
+  }
+  updateLOD();
+}
+function highlightNode(nodeId){
+  hoverActive=true;
+  for(const ent of edgeEntries){
+    if(ent.edge.a===nodeId||ent.edge.b===nodeId){ent.line.classList.add("edge-highlight"); ent.label.classList.add("edge-label-highlight");}
+    else{ent.line.classList.add("edge-dim"); ent.label.classList.add("edge-label-dim");}
+  }
+  for(const ent of nodeEntries){ent.circle.classList.add("node-dim"); ent.label.classList.add("node-label-dim");}
+  for(const ent of nodeEntries){
+    if(ent.node.id===nodeId){ent.circle.classList.remove("node-dim"); ent.label.classList.remove("node-label-dim");}
+  }
+  // Also un-dim neighbors
+  for(const ent of edgeEntries){
+    if(ent.edge.a===nodeId||ent.edge.b===nodeId){
+      const otherId=ent.edge.a===nodeId?ent.edge.b:ent.edge.a;
+      for(const ne of nodeEntries){ if(ne.node.id===otherId){ne.circle.classList.remove("node-dim"); ne.label.classList.remove("node-label-dim");}}
+    }
+  }
+  updateLOD();
+}
+function clearSel(){ if(selected){ selected.classList.remove("selected"); selected=null; } clearHighlight(); }
 function setInfo(t){ document.getElementById("info").textContent=t; }
 
 const NS="http://www.w3.org/2000/svg";
 const edgeEntries=[], edgeLabelEls={};
 
+const catColors={"M":"var(--mandatory)","O":"var(--optional)","C":"var(--connector)"};
+
+// ====== PRE-COMPUTE CURVE CONTROL POINTS (edge fanning) ======
+// For nodes with many edges, fan them out as slight curves to reduce overlap
+const nodeEdgeList={};
 for(const e of data.edges){
   const a=nodeById.get(e.a), b=nodeById.get(e.b);
-  const line=document.createElementNS(NS,"line");
-  line.setAttribute("x1",a.x); line.setAttribute("y1",a.y);
-  line.setAttribute("x2",b.x); line.setAttribute("y2",b.y);
-  line.classList.add("edge","edge-cat-"+e.cat);
+  if(!nodeEdgeList[e.a]) nodeEdgeList[e.a]=[];
+  if(!nodeEdgeList[e.b]) nodeEdgeList[e.b]=[];
+  nodeEdgeList[e.a].push({eid:e.id, ang:Math.atan2(b.y-a.y, b.x-a.x)});
+  nodeEdgeList[e.b].push({eid:e.id, ang:Math.atan2(a.y-b.y, a.x-b.x)});
+}
+for(const nid in nodeEdgeList) nodeEdgeList[nid].sort((a,b)=>a.ang-b.ang);
+const edgeCurveData={};
+for(const e of data.edges){
+  const a=nodeById.get(e.a), b=nodeById.get(e.b);
+  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const dist=Math.hypot(dx,dy)||1;
+  const nx=-dy/dist, ny=dx/dist;
+  const listA=nodeEdgeList[e.a], listB=nodeEdgeList[e.b];
+  const rankA=listA.findIndex(x=>x.eid===e.id);
+  const degA=listA.length;
+  const offA=degA>2?(rankA-(degA-1)/2)/degA:0;
+  const rankB=listB.findIndex(x=>x.eid===e.id);
+  const degB=listB.length;
+  const offB=degB>2?(rankB-(degB-1)/2)/degB:0;
+  const off=(offA+offB)/2;
+  const mag=off*Math.min(dist*0.3, 50);
+  const cx2=mx+nx*mag, cy2=my+ny*mag;
+  edgeCurveData[e.id]={cx:cx2, cy:cy2, lx:(a.x+2*cx2+b.x)/4, ly:(a.y+2*cy2+b.y)/4};
+}
+
+for(const e of data.edges){
+  const a=nodeById.get(e.a), b=nodeById.get(e.b);
+  const curve=edgeCurveData[e.id];
+  const line=document.createElementNS(NS,"path");
+  line.setAttribute("d","M"+a.x+","+a.y+" Q"+curve.cx+","+curve.cy+" "+b.x+","+b.y);
+  line.setAttribute("fill","none");
+  line.classList.add("edge");
+  const sw=edgeWidth(e.cost, e.cat);
+  line.setAttribute("stroke", catColors[e.cat]||"#7e889a");
+  line.setAttribute("stroke-width", sw.toFixed(1));
+  line.dataset.baseWidth=sw.toFixed(1);
+  if(e.cat==="C") line.setAttribute("stroke-dasharray","6 4");
   if(e.dir===1) line.setAttribute("marker-end","url(#arrow-end)");
   else{ line.setAttribute("marker-start","url(#arrow-start)"); line.setAttribute("marker-end","url(#arrow-end)"); }
 
   line.addEventListener("click", function(ev){
     if(didPan) return; ev.stopPropagation(); clearSel();
     selected=line; selected.classList.add("selected");
+    highlightEdge(line, e.a, e.b);
     setInfo("Street #"+e.id+"\nFrom "+e.a+" to "+e.b+"\nCategory: "+e.cat+
       " | Direction: "+(e.dir===1?"one-way":"two-way")+"\nCost: "+e.cost+
       "s | Length: "+e.length+"m | Requirement: "+e.req);
@@ -550,10 +921,9 @@ for(const e of data.edges){
   document.getElementById("edgeLayer").appendChild(line);
 
   const txt=document.createElementNS(NS,"text");
-  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-  const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1;
-  const nx=-dy/d, ny=dx/d, off=8+(e.id%5)*2;
-  txt.setAttribute("x",mx+nx*off); txt.setAttribute("y",my+ny*off);
+  const dx2=b.x-a.x, dy2=b.y-a.y, d2=Math.hypot(dx2,dy2)||1;
+  const nx2=-dy2/d2, ny2=dx2/d2, toff=sw/2+6;
+  txt.setAttribute("x",curve.lx+nx2*toff); txt.setAttribute("y",curve.ly+ny2*toff);
   txt.classList.add("edge-label"); txt.textContent=e.label;
   document.getElementById("edgeLabelLayer").appendChild(txt);
   edgeLabelEls[e.id]=txt;
@@ -565,12 +935,13 @@ const nodeEntries=[];
 for(const n of data.nodes){
   const c=document.createElementNS(NS,"circle");
   c.setAttribute("cx",n.x); c.setAttribute("cy",n.y);
-  c.setAttribute("r",n.isDepot?8.5:6.2);
+  c.setAttribute("r",n.isDepot?8.5:5.5);
   c.classList.add("node"); if(n.isDepot) c.classList.add("is-depot");
 
   c.addEventListener("click", function(ev){
     if(didPan) return; ev.stopPropagation(); clearSel();
     selected=c; selected.classList.add("selected");
+    highlightNode(n.id);
     setInfo("Node "+n.id+(n.isDepot?" (Depot)":"")+"\nDegree: "+n.degree+
       "\nPosition: ("+n.x.toFixed(1)+", "+n.y.toFixed(1)+")");
   });
@@ -587,6 +958,57 @@ for(const n of data.nodes){
 graph.addEventListener("click", function(){
   if(didPan) return; clearSel();
   setInfo("Click a node or street to inspect details.");
+});
+
+// ====== MINIMAP ======
+(function buildMinimap(){
+  const mmSvg=document.getElementById("mmSvg");
+  const mmEdges=document.getElementById("mmEdges");
+  const mmNodes=document.getElementById("mmNodes");
+  // Set viewBox to match full extent
+  let x0=0,y0=0,x1=meta.viewWidth,y1=meta.viewHeight;
+  if(data.nodes.length){
+    x0=Infinity;y0=Infinity;x1=-Infinity;y1=-Infinity;
+    for(const n of data.nodes){x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x);y1=Math.max(y1,n.y);}
+    const p=30; x0-=p;y0-=p;x1+=p;y1+=p;
+  }
+  mmSvg.setAttribute("viewBox", x0+" "+y0+" "+(x1-x0)+" "+(y1-y0));
+  window._mmBounds={x0:x0,y0:y0,w:x1-x0,h:y1-y0};
+  // Draw simplified edges
+  for(const e of data.edges){
+    const a=nodeById.get(e.a), b=nodeById.get(e.b);
+    const l=document.createElementNS(NS,"line");
+    l.setAttribute("x1",a.x);l.setAttribute("y1",a.y);
+    l.setAttribute("x2",b.x);l.setAttribute("y2",b.y);
+    l.setAttribute("stroke",e.cat==="M"?"#cc2a2a":e.cat==="O"?"#1564c0":"#b5bcc8");
+    l.setAttribute("stroke-width", e.cat==="C"?"1":"2");
+    l.setAttribute("opacity","0.6");
+    mmEdges.appendChild(l);
+  }
+  for(const n of data.nodes){
+    const c=document.createElementNS(NS,"circle");
+    c.setAttribute("cx",n.x);c.setAttribute("cy",n.y);
+    c.setAttribute("r",n.isDepot?"5":"2.5");
+    c.setAttribute("fill",n.isDepot?"#ff9a2f":"#2d5f5d");
+    mmNodes.appendChild(c);
+  }
+})();
+
+function updateMinimap(){
+  const vp=document.getElementById("mmViewport");
+  const b=window._mmBounds;
+  if(!b) return;
+  vp.setAttribute("x",vb.x); vp.setAttribute("y",vb.y);
+  vp.setAttribute("width",vb.w); vp.setAttribute("height",vb.h);
+}
+
+// Click minimap to navigate
+document.getElementById("minimap").addEventListener("click", function(e){
+  const r=this.querySelector("svg").getBoundingClientRect();
+  const b=window._mmBounds;
+  const rx=(e.clientX-r.left)/r.width, ry=(e.clientY-r.top)/r.height;
+  const cx=b.x0+b.w*rx, cy=b.y0+b.h*ry;
+  smoothZoom({x:cx-vb.w/2, y:cy-vb.h/2, w:vb.w, h:vb.h}, 200);
 });
 
 // ====== FILTERS ======
@@ -650,14 +1072,16 @@ const ACT_COL={cleaning:"#22c55e",deadheading:"#f59e0b",depot:"#94a3b8"};
 let simTime=0, animPlaying=false, lastFrame=null, animId=null;
 let speed=1;
 
-// Create edge overlays
+// Create edge overlays (curved paths matching main edges)
 const edgeOvEls={};
 for(const e of data.edges){
   const a=nodeById.get(e.a), b=nodeById.get(e.b);
-  const line=document.createElementNS(NS,"line");
-  line.setAttribute("x1",a.x); line.setAttribute("y1",a.y);
-  line.setAttribute("x2",b.x); line.setAttribute("y2",b.y);
-  line.setAttribute("stroke-linecap","round"); line.setAttribute("stroke-width","7");
+  const curve=edgeCurveData[e.id];
+  const line=document.createElementNS(NS,"path");
+  line.setAttribute("d","M"+a.x+","+a.y+" Q"+curve.cx+","+curve.cy+" "+b.x+","+b.y);
+  line.setAttribute("fill","none");
+  line.setAttribute("stroke-linecap","round");
+  line.setAttribute("stroke-width", Math.max(7, edgeWidth(e.cost,e.cat)+2).toFixed(1));
   line.setAttribute("opacity","0"); line.setAttribute("pointer-events","none");
   document.getElementById("animEdgeOverlay").appendChild(line);
   edgeOvEls[e.id]=line;
@@ -668,19 +1092,22 @@ const vDots=[];
 if(hasSol){
   for(const v of sol.vehicles){
     const g=document.createElementNS(NS,"g");
+    const shadow=document.createElementNS(NS,"circle");
+    shadow.setAttribute("r","16"); shadow.setAttribute("fill","rgba(0,0,0,0.12)");
+    shadow.setAttribute("cx","2"); shadow.setAttribute("cy","2");
     const bg=document.createElementNS(NS,"circle");
-    bg.setAttribute("r","13"); bg.setAttribute("fill","rgba(255,255,255,0.85)");
+    bg.setAttribute("r","14"); bg.setAttribute("fill","rgba(255,255,255,0.9)");
     bg.setAttribute("stroke","none");
     const circ=document.createElementNS(NS,"circle");
-    circ.setAttribute("r","10");
+    circ.setAttribute("r","11");
     circ.setAttribute("stroke",VCOLS[v.id%VCOLS.length]);
     circ.setAttribute("stroke-width","3"); circ.setAttribute("fill",ACT_COL.depot);
     const txt=document.createElementNS(NS,"text");
-    txt.setAttribute("text-anchor","middle"); txt.setAttribute("dy","4");
-    txt.setAttribute("font-size","10"); txt.setAttribute("font-weight","bold");
+    txt.setAttribute("text-anchor","middle"); txt.setAttribute("dy","4.5");
+    txt.setAttribute("font-size","11"); txt.setAttribute("font-weight","bold");
     txt.setAttribute("fill","#fff"); txt.setAttribute("pointer-events","none");
     txt.textContent=String(v.id);
-    g.appendChild(bg); g.appendChild(circ); g.appendChild(txt);
+    g.appendChild(shadow); g.appendChild(bg); g.appendChild(circ); g.appendChild(txt);
     g.style.display="none";
     document.getElementById("vehicleLayer").appendChild(g);
     vDots.push({g:g, bg:bg, circ:circ, txt:txt, v:v});
@@ -754,8 +1181,8 @@ function updateAnim(t){
     vd.g.setAttribute("transform","translate("+st.x.toFixed(1)+","+st.y.toFixed(1)+")");
     vd.g.style.display="";
     vd.circ.setAttribute("fill", ACT_COL[st.status]);
-    vd.bg.setAttribute("fill", st.status==="cleaning"?"rgba(34,197,94,0.18)":
-                                st.status==="deadheading"?"rgba(245,158,11,0.15)":"rgba(148,163,184,0.12)");
+    vd.bg.setAttribute("fill", st.status==="cleaning"?"rgba(34,197,94,0.2)":
+                                st.status==="deadheading"?"rgba(245,158,11,0.18)":"rgba(148,163,184,0.15)");
   }
   // Edge overlays
   const es=computeEdgeStates(t);
@@ -774,10 +1201,13 @@ function updateAnim(t){
                     "At depot";
     vc.info.innerHTML="<span class='v-name'>Vehicle "+vc.v.id+" ("+vc.v.type+")</span><br><span class='v-status'>"+statusTxt+"</span>";
   }
-  // Timeline
-  const slider=document.getElementById("timeline");
-  slider.value=Math.round(t/sol.maxTime*10000)||0;
+  // Timeline (sync both sliders)
+  const sliderVal=Math.round(t/sol.maxTime*10000)||0;
+  document.getElementById("timeline").value=sliderVal;
+  document.getElementById("sideTimeline").value=sliderVal;
   document.getElementById("timeDisplay").textContent=Math.round(t)+"s / "+sol.maxTime+"s";
+  document.getElementById("sideTimeCur").textContent=Math.round(t)+"s";
+  document.getElementById("sideTimeTotal").textContent="/ "+sol.maxTime+"s";
   // Progress
   const p=countCleaned(t);
   const pct=p.total?Math.round(p.cleaned/p.total*100):0;
@@ -800,6 +1230,7 @@ function animLoop(ts){
   if(simTime>=sol.maxTime){
     animPlaying=false;
     document.getElementById("playPause").innerHTML="&#9654; Play";
+    document.getElementById("sidePlayPause").innerHTML="&#9654;";
     return;
   }
   animId=requestAnimationFrame(animLoop);
@@ -810,11 +1241,13 @@ function togglePlay(){
   if(animPlaying){
     animPlaying=false; lastFrame=null;
     document.getElementById("playPause").innerHTML="&#9654; Play";
+    document.getElementById("sidePlayPause").innerHTML="&#9654;";
     cancelAnimationFrame(animId);
   } else {
     if(simTime>=sol.maxTime) simTime=0;
     animPlaying=true; lastFrame=null;
     document.getElementById("playPause").innerHTML="&#9646;&#9646; Pause";
+    document.getElementById("sidePlayPause").innerHTML="&#9646;&#9646;";
     animId=requestAnimationFrame(animLoop);
   }
 }
@@ -822,6 +1255,7 @@ function togglePlay(){
 function resetAnim(){
   animPlaying=false; simTime=0; lastFrame=null;
   document.getElementById("playPause").innerHTML="&#9654; Play";
+  document.getElementById("sidePlayPause").innerHTML="&#9654;";
   cancelAnimationFrame(animId);
   updateAnim(0);
 }
@@ -830,6 +1264,7 @@ document.getElementById("playPause").addEventListener("click", togglePlay);
 document.getElementById("resetBtn").addEventListener("click", resetAnim);
 document.getElementById("speedSel").addEventListener("change", function(){
   speed=parseFloat(this.value);
+  document.getElementById("sideSpeedSel").value=this.value;
 });
 document.getElementById("timeline").addEventListener("input", function(){
   if(!hasSol) return;
@@ -838,8 +1273,43 @@ document.getElementById("timeline").addEventListener("input", function(){
   if(!animPlaying) updateAnim(t);
 });
 
-// Keyboard shortcuts
+// Sidebar animation controls
+document.getElementById("sidePlayPause").addEventListener("click", togglePlay);
+document.getElementById("sideReset").addEventListener("click", resetAnim);
+document.getElementById("sideTimeline").addEventListener("input", function(){
+  if(!hasSol) return;
+  const t=parseFloat(this.value)/10000*sol.maxTime;
+  simTime=t;
+  if(!animPlaying) updateAnim(t);
+});
+document.getElementById("sideSpeedSel").addEventListener("change", function(){
+  speed=parseFloat(this.value);
+  document.getElementById("speedSel").value=this.value;
+});
+document.getElementById("sideSkipBack").addEventListener("click", function(){
+  if(!hasSol) return;
+  simTime=Math.max(simTime-sol.maxTime*0.05, 0);
+  if(!animPlaying) updateAnim(simTime);
+});
+document.getElementById("sideStepBack").addEventListener("click", function(){
+  if(!hasSol) return;
+  simTime=Math.max(simTime-sol.maxTime*0.01, 0);
+  if(!animPlaying) updateAnim(simTime);
+});
+document.getElementById("sideStepFwd").addEventListener("click", function(){
+  if(!hasSol) return;
+  simTime=Math.min(simTime+sol.maxTime*0.01, sol.maxTime);
+  if(!animPlaying) updateAnim(simTime);
+});
+document.getElementById("sideSkipFwd").addEventListener("click", function(){
+  if(!hasSol) return;
+  simTime=Math.min(simTime+sol.maxTime*0.05, sol.maxTime);
+  if(!animPlaying) updateAnim(simTime);
+});
+
+// Keyboard shortcuts (animation)
 document.addEventListener("keydown", function(e){
+  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"||e.target.tagName==="TEXTAREA") return;
   if(activeTab!=="anim"||!hasSol) return;
   if(e.code==="Space"){ e.preventDefault(); togglePlay(); }
   if(e.code==="KeyR"){ resetAnim(); }
@@ -865,6 +1335,15 @@ if(!hasSol){
     "<p>No solution file loaded.</p>"+
     "<p style='font-size:12px'>Use <code>--solution &lt;file&gt;</code> to animate a solution.</p></div>";
 }
+
+// For large graphs, start zoomed out and auto-hide labels
+if(isLarge){
+  toggleEL.checked=false;
+  applyFilters();
+}
+
+// Initial LOD + minimap update
+updateLOD(); updateMinimap();
 </script>
 </body>
 </html>
@@ -902,13 +1381,23 @@ def main():
 
     instance = parse_instance(str(input_path))
 
+    # Auto-scale canvas for large graphs so nodes spread out
+    n = instance["N"]
+    w = args.width
+    h = args.height
+    if n > 50:
+        scale = max(1.0, math.sqrt(n / 50.0))
+        w = int(w * scale)
+        h = int(h * scale)
+        print(f"[INFO] Large graph ({n} nodes) — canvas scaled to {w}x{h}")
+
     solution_data = None
     if args.solution:
         _, routes, clean_per_vehicle = parse_solution(args.solution)
         solution_data = build_solution_data(instance, routes, clean_per_vehicle)
 
-    points = build_layout(instance, args.width, args.height)
-    view_data = build_view_data(instance, points, args.width, args.height)
+    points = build_layout(instance, w, h)
+    view_data = build_view_data(instance, points, w, h)
     html = build_html(view_data, solution_data)
 
     output_path.write_text(html, encoding="utf-8")

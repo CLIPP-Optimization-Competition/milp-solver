@@ -1,0 +1,300 @@
+% ============================================================================
+%  CLIPP — MILP Formulation (academic style)
+% ============================================================================
+\documentclass[11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{booktabs}
+
+\newcommand{\setN}{\mathcal{N}}
+\newcommand{\setJ}{\mathcal{J}}
+\newcommand{\Jm}{\mathcal{J}_M}
+\newcommand{\Jo}{\mathcal{J}_O}
+\newcommand{\Jc}{\mathcal{J}_C}
+\newcommand{\setA}{\mathcal{A}}
+\newcommand{\Aj}{A_j}
+\newcommand{\setK}{\mathcal{K}}
+\newcommand{\depot}{S}
+
+\title{Climate-Integrated Street Cleaning Routing Problem\\(MILP Formulation)}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Notation}
+
+Let $\mathcal{N} = \{0, \dots, N-1\}$ be the set of junctions and
+$\mathcal{J} = \{0, \dots, M-1\}$ the set of streets in the city network.
+The streets are partitioned into three categories:
+$\mathcal{J}_M$ (mandatory),
+$\mathcal{J}_O$ (optional), and
+$\mathcal{J}_C$ (connectors), so that
+$\mathcal{J} = \mathcal{J}_M \cup \mathcal{J}_O \cup \mathcal{J}_C$.
+Let $\mathcal{A}$ be the set of directed arcs obtained from the street
+network, where each two-way street generates two arcs and each one-way
+street generates one.  For a street $j \in \mathcal{J}$, denote by
+$A_j \subseteq \mathcal{A}$ the set of arcs corresponding to~$j$.  For a
+junction $u \in \mathcal{N}$, let $\delta^+(u)$ and $\delta^-(u)$ be the
+sets of arcs leaving and entering~$u$, respectively.
+
+Let $\mathcal{K} = \{0, \dots, C-1\}$ be the fleet of cleaning vehicles.
+For each arc $a \in \mathcal{A}$, denote by $c_a$ its traversal time in
+seconds.  For each street $j \in \mathcal{J}$, denote by $\ell_j$ its
+length in metres and by $r_j$ its cleaning requirement in litres per
+kilometre.  For each vehicle $k \in \mathcal{K}$, denote by $q_k$ its water
+capacity in litres per kilometre.  A vehicle~$k$ can clean street~$j$ only
+if $q_k \ge r_j$; connector streets ($j \in \mathcal{J}_C$) cannot be
+cleaned.
+
+Let $T$ be the shared time limit for every vehicle, $S \in \mathcal{N}$ the
+depot junction at which all vehicles start and must return, and $W \ge 0$
+the water-waste penalty factor.  Define $U_a = \min(\lfloor T / c_a
+\rfloor,\, 50)$ as the traversal upper bound for arc~$a$ and $\mathcal{M}
+= 1 + \sum_{a \in \mathcal{A}} U_a$ as the Big-M constant.
+
+Denote by $f_{a,k}$, $a \in \mathcal{A}$, $k \in \mathcal{K}$, the
+integer decision variable representing the number of times vehicle~$k$
+traverses arc~$a$.  Denote by $x_{j,k}$, $j \in \mathcal{J} \setminus
+\mathcal{J}_C$, $k \in \mathcal{K}$, the binary decision variable which
+takes the value~1 if vehicle~$k$ cleans street~$j$, and~0 otherwise.  If
+$q_k < r_j$, the variable $x_{j,k}$ is fixed to~0.  Finally, denote by
+$y_j$, $j \in \mathcal{J} \setminus \mathcal{J}_C$, the binary decision
+variable which takes the value~1 if street~$j$ is cleaned by any vehicle,
+and~0 otherwise.
+
+
+\begin{center}
+\begin{tabular}{@{} l l @{}}
+\toprule
+Symbol & Description \\
+\midrule
+$\setN = \{0, \dots, N-1\}$       & Junctions (nodes) \\
+$\setJ = \{0, \dots, M-1\}$       & Streets (edges) \\
+$\Jm \subset \setJ$               & Mandatory streets \\
+$\Jo \subset \setJ$               & Optional streets \\
+$\Jc \subset \setJ$               & Connector streets ($\setJ = \Jm \cup \Jo \cup \Jc$) \\
+$\setA$                            & Directed arcs (a two-way street generates two arcs) \\
+$\Aj \subseteq \setA$             & Set of arcs corresponding to street $j$ \\
+$\setK = \{0, \dots, C-1\}$       & Vehicles \\
+$\delta^+(u), \delta^-(u)$         & Outgoing / incoming arcs at node $u$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\begin{center}
+\begin{tabular}{@{} l l @{}}
+\toprule
+Symbol & Description \\
+\midrule
+$T$            & Shared time limit for every vehicle (seconds) \\
+$\depot$       & Depot junction \\
+$W$            & Water-waste penalty factor \\
+$c_a$          & Traversal time of arc $a$ (seconds) \\
+$\ell_j$       & Length of street $j$ (metres) \\
+$r_j$          & Cleaning requirement of street $j$ (litres\,/\,km) \\
+$q_k$          & Water capacity of vehicle $k$ (litres\,/\,km) \\
+$U_a$          & Traversal upper bound for arc $a$: $U_a = \min\!\bigl(\lfloor T / c_a \rfloor,\; 50\bigr)$ \\
+$\mathcal{M}$  & Big-M constant: $\mathcal{M} = 1 + \sum_{a \in \setA} U_a$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\section{Decision variables}
+%% -------------------------------------------------------------------
+
+\begin{align}
+f_{a,k} &\in \mathbb{Z}_{\ge 0}
+    &&\forall\, a \in \setA,\; k \in \setK
+    \tag{flow variable}\\[4pt]
+x_{j,k} &\in \{0,1\}
+    &&\forall\, j \in \setJ \setminus \Jc,\; k \in \setK
+    \tag{cleaning assignment}\\[4pt]
+y_j     &\in \{0,1\}
+    &&\forall\, j \in \setJ \setminus \Jc
+    \tag{cleaned indicator}
+\end{align}
+
+\begin{itemize}[nosep]
+  \item $f_{a,k}$ counts how many times vehicle~$k$ traverses arc~$a$.
+  \item $x_{j,k} = 1$ if vehicle~$k$ cleans street~$j$.
+  \item $y_j = 1$ if street~$j$ is cleaned by \emph{any} vehicle.
+\end{itemize}
+
+\medskip\noindent
+\textbf{Note.}
+If vehicle~$k$ cannot clean street~$j$ (i.e.\ $q_k < r_j$, or $j \in \Jc$),
+$x_{j,k}$ is fixed to~$0$ and not created as a decision variable.
+
+\section{Formulation}
+
+Using the above definitions, the Climate-Integrated Street Cleaning Routing
+Problem can be formulated as follows:
+
+\begin{align}
+\text{Maximise} \quad
+& \sum_{j \in \mathcal{J} \setminus \mathcal{J}_C} \ell_j \, y_j
+\;-\;
+W \sum_{j \in \mathcal{J} \setminus \mathcal{J}_C}
+  \sum_{k \in \mathcal{K}}
+  \frac{(q_k - r_j)\,\ell_j}{1000}\, x_{j,k}
+&& \tag{1} \label{eq:obj} \\[10pt]
+%
+\text{subject to} \notag \\[4pt]
+%
+& \sum_{a \in \delta^+(u)} f_{a,k}
+  \;=\;
+  \sum_{a \in \delta^-(u)} f_{a,k}
+&& \forall\, u \in \mathcal{N},\; k \in \mathcal{K},
+\tag{2} \label{eq:flow} \\[6pt]
+%
+& \sum_{a \in \mathcal{A}} c_a \, f_{a,k} \;\le\; T
+&& \forall\, k \in \mathcal{K},
+\tag{3} \label{eq:time} \\[6pt]
+%
+& \sum_{a \in A_j} f_{a,k} \;\ge\; x_{j,k}
+&& \forall\, j \in \mathcal{J} \setminus \mathcal{J}_C,\;
+   k \in \mathcal{K},
+\tag{4} \label{eq:traverse} \\[6pt]
+%
+& x_{j,k} \;\le\; y_j
+&& \forall\, j \in \mathcal{J} \setminus \mathcal{J}_C,\;
+   k \in \mathcal{K},
+\tag{5} \label{eq:link-fwd} \\[6pt]
+%
+& y_j \;\le\; \sum_{k \in \mathcal{K}} x_{j,k}
+&& \forall\, j \in \mathcal{J} \setminus \mathcal{J}_C,
+\tag{6} \label{eq:link-rev} \\[6pt]
+%
+& \sum_{k \in \mathcal{K}} x_{j,k} \;\le\; 1
+&& \forall\, j \in \mathcal{J} \setminus \mathcal{J}_C,
+\tag{7} \label{eq:single} \\[6pt]
+%
+& y_j \;=\; 1
+&& \forall\, j \in \mathcal{J}_M,
+\tag{8} \label{eq:mandatory} \\[6pt]
+%
+& \sum_{a \in \mathcal{A}} f_{a,k}
+  \;\le\;
+  \mathcal{M} \sum_{a \in \delta^+(S)} f_{a,k}
+&& \forall\, k \in \mathcal{K},
+\tag{9} \label{eq:depot} \\[6pt]
+%
+& f_{a,k} \;\in\; \mathbb{Z}_{\ge 0}
+&& \forall\, a \in \mathcal{A},\; k \in \mathcal{K},
+\tag{10} \label{eq:dom-f} \\[4pt]
+%
+& x_{j,k} \;\in\; \{0,1\}
+&& \forall\, j \in \mathcal{J} \setminus \mathcal{J}_C,\;
+   k \in \mathcal{K},
+\tag{11} \label{eq:dom-x} \\[4pt]
+%
+& y_j \;\in\; \{0,1\}
+&& \forall\, j \in \mathcal{J} \setminus \mathcal{J}_C.
+\tag{12} \label{eq:dom-y}
+\end{align}
+
+\section{Model Description}
+
+The objective function~\eqref{eq:obj} seeks to maximise the total length of
+cleaned streets minus a penalty for water waste.  The first term sums the
+length of every street that is cleaned; the second term accounts for the
+excess water used when a vehicle's capacity exceeds the street's
+requirement, weighted by the penalty factor~$W$.  When $W = 0$ the problem
+reduces to pure coverage maximisation.
+
+Constraint~\eqref{eq:flow} enforces \emph{flow conservation} at every
+junction for each vehicle: the total flow leaving a junction equals the
+total flow entering it.  This ensures that each vehicle's route forms a
+closed walk, so it can return to its starting point without discontinuities.
+
+Constraint~\eqref{eq:time} limits each vehicle's total traversal time to
+the shared time budget~$T$, guaranteeing that every vehicle returns to the
+depot on time.
+
+Constraint~\eqref{eq:traverse} requires that if vehicle~$k$ cleans
+street~$j$, it must have traversed at least one arc of that street.  A
+vehicle cannot clean a street it has not physically visited.
+
+Constraints~\eqref{eq:link-fwd} and~\eqref{eq:link-rev} together link the
+per-vehicle cleaning variables $x_{j,k}$ to the aggregate cleaned indicator
+$y_j$.  Constraint~\eqref{eq:link-fwd} ensures that cleaning by any
+vehicle activates the indicator ($x_{j,k} = 1 \Rightarrow y_j = 1$).
+Constraint~\eqref{eq:link-rev} prevents the indicator from being active
+unless at least one vehicle actually cleans the street ($y_j = 1
+\Rightarrow \sum_k x_{j,k} \ge 1$).  Together they encode $y_j = 1
+\Leftrightarrow \exists\, k : x_{j,k} = 1$.
+
+Constraint~\eqref{eq:single} limits each street to be cleaned by at most
+one vehicle.  Although the problem permits redundant cleaning, enforcing
+single-vehicle cleaning eliminates unnecessary water waste, since a
+street's length is scored only once regardless of how many vehicles clean
+it.
+
+Constraint~\eqref{eq:mandatory} ensures that every mandatory street is
+cleaned.  A solution that leaves any mandatory street uncleaned is
+infeasible.  If a mandatory street is provably unreachable within the time
+budget (detected via a Dijkstra-based pre-check), its hard constraint is
+relaxed to a soft one so the solver is not forced into infeasibility.
+
+Constraint~\eqref{eq:depot} is a Big-M formulation that forces each
+vehicle to include the depot in its route.  If a vehicle uses any arc
+(left-hand side ${} > 0$), it must have at least one outgoing traversal from
+the depot.  Combined with flow conservation~\eqref{eq:flow}, this ensures
+the closed walk passes through~$S$.  When the depot has zero outgoing flow,
+the right-hand side collapses to~$0$, prohibiting all arc usage --- i.e.\
+an unused vehicle simply stays at the depot.
+
+Constraints~\eqref{eq:dom-f}--\eqref{eq:dom-y} state the variable domains:
+flow variables are non-negative integers, and cleaning and cleaned-indicator
+variables are binary.
+
+This model is a Mixed-Integer Linear Programming problem representing a
+multi-vehicle arc routing problem with heterogeneous fleet, capacity
+matching, time windows, and a bi-criteria objective balancing street
+coverage against water efficiency, in the context of climate-aware urban
+street cleaning.
+
+\subsection{Subtour Elimination}
+
+Flow conservation alone does not prevent \emph{subtours} --- disconnected
+cycles that never visit the depot.  These are eliminated via an iterative
+cutting-plane procedure.  After each solve, the weakly-connected components
+of each vehicle's arc-flow multigraph are computed.  For every
+component~$\mathcal{C}$ that does not contain the depot, the following
+constraint is added:
+%
+\begin{equation}\tag{13}\label{eq:subtour}
+\sum_{\substack{a \in \mathcal{A}:\\ \mathrm{tail}(a) \in \mathcal{C},\;
+      \mathrm{head}(a) \in \mathcal{C}}} f_{a,k}
+\;\le\;
+\Biggl(\,1 + \!\!
+  \sum_{\substack{a \in \mathcal{A}:\\ \mathrm{tail}(a) \in \mathcal{C},\;
+        \mathrm{head}(a) \in \mathcal{C}}} U_a
+\Biggr)
+\cdot
+\sum_{\substack{a \in \mathcal{A}:\\ \mathrm{tail}(a) \notin \mathcal{C},\;
+      \mathrm{head}(a) \in \mathcal{C}}} f_{a,k}
+\end{equation}
+%
+This constraint states that the total flow on arcs internal to~$\mathcal{C}$
+can be positive only if there is positive flow on arcs entering~$\mathcal{C}$
+from outside.  If no arcs enter the component, all internal flow is forced
+to zero.  The model is then re-solved with the added cuts (warm-started
+from the previous solution) and the process repeats until no subtours remain
+or the time budget is exhausted.
+
+\subsection{Post-Processing: Route Reconstruction}
+
+After solving, each vehicle's arc-flow solution is converted into an
+explicit junction sequence via Hierholzer's algorithm for Eulerian circuits.
+If any connected component of a vehicle's multigraph is disconnected from
+the depot, a shortest-path bridge (depot $\to$ component $\to$ depot) is
+inserted when the remaining time budget permits; otherwise the component's
+arcs are dropped.
+
+\end{document}

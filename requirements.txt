@@ -1,0 +1,5 @@
+ortools>=9.14
+matplotlib>=3.10
+networkx>=3.4
+numpy>=2.2
+pandas>=2.3

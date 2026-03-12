@@ -44,8 +44,14 @@ hr.sep{border:0;border-top:1px solid #e8eef8;margin:10px 0}
 .tab-btn:disabled{opacity:.35;cursor:not-allowed}
 svg#graph{display:block;flex:1;min-height:0;cursor:grab;background:#fff;touch-action:none}
 svg#graph.panning{cursor:grabbing}
-.edge{stroke-linecap:round;opacity:.88;cursor:pointer}
+.edge{stroke-linecap:round;opacity:.88;cursor:pointer;transition:opacity .12s}
 .edge.selected{stroke:var(--sel)!important;opacity:1}
+.edge-dim{opacity:.06!important}
+.edge-highlight{opacity:1!important;filter:drop-shadow(0 0 3px rgba(0,0,0,.35))}
+.node-dim{opacity:.18!important;transition:opacity .12s}
+.node-label-dim{opacity:.08!important}
+.edge-label-dim{opacity:.03!important}
+.edge-label-highlight{opacity:1!important;font-weight:700;fill:#0a1628!important;stroke-width:4px!important;font-size:14px!important}
 .edge-label{font-size:11px;fill:#243149;paint-order:stroke;stroke:#fff;
   stroke-width:3px;stroke-linejoin:round;pointer-events:none;user-select:none}
 .node{fill:var(--node);stroke:#fff;stroke-width:2px;cursor:pointer}
@@ -89,6 +95,24 @@ svg#graph.anim-mode .edge-label{opacity:.12}
 .progress-bar{height:8px;border-radius:4px;background:#e8eef8;margin:6px 0;overflow:hidden}
 .progress-fill{height:100%;border-radius:4px;background:var(--clean);transition:width .3s}
 .hidden{display:none!important}
+/* Sidebar animation controls */
+.side-transport{display:flex;flex-direction:column;gap:8px;padding:10px 0}
+.side-transport .time-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted)}
+.side-transport .time-current{font-weight:700;color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums}
+.side-transport .time-total{font-variant-numeric:tabular-nums}
+.side-slider{width:100%;height:8px;cursor:pointer;accent-color:var(--tab-active);margin:2px 0}
+.side-btns{display:flex;align-items:center;justify-content:center;gap:6px}
+.side-btns button{width:36px;height:36px;border:1px solid #d0d8e8;border-radius:10px;
+  background:var(--panel);cursor:pointer;font-size:15px;display:flex;align-items:center;
+  justify-content:center;color:var(--ink);transition:background .1s,transform .1s;
+  box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.side-btns button:hover{background:#eef3fc;transform:scale(1.06)}
+.side-btns button:active{transform:scale(.95)}
+.side-btns .play-btn{width:46px;height:46px;border-radius:50%;background:var(--tab-active);
+  color:#fff;font-size:18px;border:none;box-shadow:0 2px 8px rgba(21,100,192,.3)}
+.side-btns .play-btn:hover{background:#1258a8}
+.side-speed{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--muted)}
+.side-speed select{padding:3px 8px;border:1px solid #c5cfe0;border-radius:4px;font-size:12px}
 @media(max-width:960px){.wrap{grid-template-columns:1fr}svg#graph{height:62vh}}
 </style>
 </head>
@@ -121,6 +145,36 @@ svg#graph.anim-mode .edge-label{opacity:.12}
         <span><span class="action-swatch" style="background:var(--clean)"></span>Cleaning</span>
         <span><span class="action-swatch" style="background:var(--deadhead)"></span>Deadheading</span>
         <span><span class="action-swatch" style="background:var(--idle)"></span>At depot</span>
+      </div>
+      <hr class="sep">
+      <!-- Transport controls -->
+      <div class="side-transport">
+        <div class="time-row">
+          <span class="time-current" id="sideTimeCur">0s</span>
+          <span class="time-total" id="sideTimeTotal">/ 0s</span>
+        </div>
+        <input type="range" class="side-slider" id="sideTimeline" min="0" max="10000" value="0" step="1">
+        <div class="side-btns">
+          <button id="sideSkipBack" title="Back 5%">&#9664;&#9664;</button>
+          <button id="sideStepBack" title="Back 1%">&#9664;</button>
+          <button class="play-btn" id="sidePlayPause" title="Play / Pause">&#9654;</button>
+          <button id="sideStepFwd" title="Forward 1%">&#9654;</button>
+          <button id="sideSkipFwd" title="Forward 5%">&#9654;&#9654;</button>
+          <button id="sideReset" title="Reset" style="font-size:14px">&#8634;</button>
+        </div>
+        <div class="side-speed">
+          <span>Speed:</span>
+          <select id="sideSpeedSel">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="5">5x</option>
+            <option value="10">10x</option>
+            <option value="20">20x</option>
+            <option value="50">50x</option>
+          </select>
+        </div>
       </div>
       <hr class="sep">
       <div id="vehicleList"></div>
@@ -195,7 +249,7 @@ svg#graph.anim-mode .edge-label{opacity:.12}
 </div>
 <script>
 // ====== DATA ======
-const data = {"meta":{"N":6,"M":10,"T":300,"C":3,"S":0,"W":0.0,"fleet":["L","S","M"],"categoryCounts":{"M":2,"O":5,"C":3},"viewWidth":1280,"viewHeight":860,"minCost":25,"maxCost":200},"nodes":[{"id":0,"x":1220.0,"y":131.76,"isDepot":true,"degree":3},{"id":1,"x":1220.0,"y":661.92,"isDepot":false,"degree":4},{"id":2,"x":453.82,"y":615.17,"isDepot":false,"degree":5},{"id":3,"x":820.92,"y":184.64,"isDepot":false,"degree":4},{"id":4,"x":824.37,"y":800.0,"isDepot":false,"degree":3},{"id":5,"x":60.0,"y":60.0,"isDepot":false,"degree":1}],"edges":[{"id":0,"a":0,"b":2,"dir":2,"cat":"C","cost":200,"length":0,"req":0,"label":"#0 | cost=200s len=0m req=0"},{"id":1,"a":0,"b":3,"dir":1,"cat":"O","cost":69,"length":292,"req":30,"label":"#1 | cost=69s len=292m req=30"},{"id":2,"a":2,"b":5,"dir":2,"cat":"C","cost":183,"length":0,"req":0,"label":"#2 | cost=183s len=0m req=0"},{"id":3,"a":3,"b":4,"dir":2,"cat":"M","cost":102,"length":422,"req":30,"label":"#3 | cost=102s len=422m req=30"},{"id":4,"a":1,"b":4,"dir":2,"cat":"C","cost":35,"length":0,"req":0,"label":"#4 | cost=35s len=0m req=0"},{"id":5,"a":2,"b":4,"dir":2,"cat":"M","cost":25,"length":68,"req":10,"label":"#5 | cost=25s len=68m req=10"},{"id":6,"a":0,"b":1,"dir":2,"cat":"O","cost":56,"length":182,"req":30,"label":"#6 | cost=56s len=182m req=30"},{"id":7,"a":1,"b":2,"dir":2,"cat":"O","cost":200,"length":370,"req":20,"label":"#7 | cost=200s len=370m req=20"},{"id":8,"a":2,"b":3,"dir":2,"cat":"O","cost":130,"length":476,"req":20,"label":"#8 | cost=130s len=476m req=20"},{"id":9,"a":1,"b":3,"dir":2,"cat":"O","cost":137,"length":349,"req":20,"label":"#9 | cost=137s len=349m req=20"}]};
+const data = {"meta":{"N":6,"M":10,"T":300,"C":3,"S":0,"W":0.0,"fleet":["L","S","M"],"categoryCounts":{"M":2,"O":5,"C":3},"viewWidth":1280,"viewHeight":860,"minCost":25,"maxCost":200},"nodes":[{"id":0,"x":881.02,"y":800.0,"isDepot":true,"degree":3},{"id":1,"x":1220.0,"y":239.65,"isDepot":false,"degree":4},{"id":2,"x":332.57,"y":800.0,"isDepot":false,"degree":5},{"id":3,"x":708.31,"y":126.21,"isDepot":false,"degree":4},{"id":4,"x":1220.0,"y":800.0,"isDepot":false,"degree":3},{"id":5,"x":60.0,"y":60.0,"isDepot":false,"degree":1}],"edges":[{"id":0,"a":0,"b":2,"dir":2,"cat":"C","cost":200,"length":0,"req":0,"label":"#0 | cost=200s len=0m req=0"},{"id":1,"a":0,"b":3,"dir":1,"cat":"O","cost":69,"length":292,"req":30,"label":"#1 | cost=69s len=292m req=30"},{"id":2,"a":2,"b":5,"dir":2,"cat":"C","cost":183,"length":0,"req":0,"label":"#2 | cost=183s len=0m req=0"},{"id":3,"a":3,"b":4,"dir":2,"cat":"M","cost":102,"length":422,"req":30,"label":"#3 | cost=102s len=422m req=30"},{"id":4,"a":1,"b":4,"dir":2,"cat":"C","cost":35,"length":0,"req":0,"label":"#4 | cost=35s len=0m req=0"},{"id":5,"a":2,"b":4,"dir":2,"cat":"M","cost":25,"length":68,"req":10,"label":"#5 | cost=25s len=68m req=10"},{"id":6,"a":0,"b":1,"dir":2,"cat":"O","cost":56,"length":182,"req":30,"label":"#6 | cost=56s len=182m req=30"},{"id":7,"a":1,"b":2,"dir":2,"cat":"O","cost":200,"length":370,"req":20,"label":"#7 | cost=200s len=370m req=20"},{"id":8,"a":2,"b":3,"dir":2,"cat":"O","cost":130,"length":476,"req":20,"label":"#8 | cost=130s len=476m req=20"},{"id":9,"a":1,"b":3,"dir":2,"cat":"O","cost":137,"length":349,"req":20,"label":"#9 | cost=137s len=349m req=20"}]};
 const sol  = {"vehicles":[{"id":0,"type":"L","segments":[{"f":0,"t":3,"s":1,"c":true,"t0":0,"t1":69},{"f":3,"t":4,"s":3,"c":true,"t0":69,"t1":171},{"f":4,"t":1,"s":4,"c":false,"t0":171,"t1":206},{"f":1,"t":0,"s":6,"c":true,"t0":206,"t1":262}],"totalTime":262},{"id":1,"type":"S","segments":[{"f":0,"t":1,"s":6,"c":false,"t0":0,"t1":56},{"f":1,"t":4,"s":4,"c":false,"t0":56,"t1":91},{"f":4,"t":2,"s":5,"c":true,"t0":91,"t1":116},{"f":2,"t":4,"s":5,"c":true,"t0":116,"t1":141},{"f":4,"t":1,"s":4,"c":false,"t0":141,"t1":176},{"f":1,"t":0,"s":6,"c":false,"t0":176,"t1":232}],"totalTime":232},{"id":2,"type":"M","segments":[{"f":0,"t":3,"s":1,"c":false,"t0":0,"t1":69},{"f":3,"t":1,"s":9,"c":true,"t0":69,"t1":206},{"f":1,"t":0,"s":6,"c":false,"t0":206,"t1":262}],"totalTime":262}],"maxTime":262};
 const meta = data.meta;
 const hasSol = sol !== null;
@@ -211,6 +265,8 @@ function edgeWidth(cost,cat){
   if(cat==="M") return 2.5+t*5.5;   // mandatory: 2.5 .. 8
   return 1.8+t*3.5;                  // optional: 1.8 .. 5.3
 }
+
+let hoverActive=false;
 
 // ====== VIEWBOX / ZOOM / PAN (smooth, map-like) ======
 const vb = { x:0, y:0, w:meta.viewWidth, h:meta.viewHeight };
@@ -378,9 +434,21 @@ function updateLOD(){
   const z=zoomLevel();
   const showEdgeLbl = z > (isLarge ? 1.8 : 0.7);
   const showNodeLbl = z > (isLarge ? 0.9 : 0.4);
-  document.getElementById("edgeLabelLayer").style.opacity = showEdgeLbl ? "1" : "0";
-  document.getElementById("edgeLabelLayer").style.pointerEvents = showEdgeLbl ? "auto" : "none";
-  document.getElementById("nodeLabelLayer").style.opacity = showNodeLbl ? "1" : "0";
+  // When highlights are active, keep label layer visible (individual labels dimmed via class)
+  if(hoverActive){
+    document.getElementById("edgeLabelLayer").style.opacity = "1";
+    document.getElementById("edgeLabelLayer").style.pointerEvents = "auto";
+    document.getElementById("nodeLabelLayer").style.opacity = "1";
+  } else {
+    document.getElementById("edgeLabelLayer").style.opacity = showEdgeLbl ? "1" : "0";
+    document.getElementById("edgeLabelLayer").style.pointerEvents = showEdgeLbl ? "auto" : "none";
+    document.getElementById("nodeLabelLayer").style.opacity = showNodeLbl ? "1" : "0";
+  }
+  // Zoom-dependent edge opacity: reduce visual noise when zoomed out on large graphs
+  if(isLarge && !hoverActive){
+    const edgeOp = z < 0.25 ? 0.3 : z < 0.5 ? 0.5 : z < 0.8 ? 0.7 : 0.88;
+    document.getElementById("edgeLayer").style.opacity = edgeOp;
+  }
 }
 
 // ====== STATS PANEL ======
@@ -402,7 +470,46 @@ const nodeById = new Map();
 for(const n of data.nodes) nodeById.set(n.id, n);
 
 let selected=null;
-function clearSel(){ if(selected){ selected.classList.remove("selected"); selected=null; } }
+function clearHighlight(){
+  hoverActive=false;
+  for(const ent of edgeEntries){ent.line.classList.remove("edge-dim","edge-highlight"); ent.label.classList.remove("edge-label-dim","edge-label-highlight");}
+  for(const ent of nodeEntries){ent.circle.classList.remove("node-dim"); ent.label.classList.remove("node-label-dim");}
+  updateLOD();
+}
+function highlightEdge(line, edgeA, edgeB){
+  hoverActive=true;
+  for(const ent of edgeEntries){ent.line.classList.add("edge-dim"); ent.label.classList.add("edge-label-dim");}
+  for(const ent of nodeEntries){ent.circle.classList.add("node-dim"); ent.label.classList.add("node-label-dim");}
+  line.classList.remove("edge-dim"); line.classList.add("edge-highlight");
+  // Show the label for the clicked edge
+  for(const ent of edgeEntries){
+    if(ent.line===line){ent.label.classList.remove("edge-label-dim"); ent.label.classList.add("edge-label-highlight");}
+  }
+  for(const ent of nodeEntries){
+    if(ent.node.id===edgeA||ent.node.id===edgeB){ent.circle.classList.remove("node-dim"); ent.label.classList.remove("node-label-dim");}
+  }
+  updateLOD();
+}
+function highlightNode(nodeId){
+  hoverActive=true;
+  for(const ent of edgeEntries){
+    if(ent.edge.a===nodeId||ent.edge.b===nodeId){ent.line.classList.add("edge-highlight"); ent.label.classList.add("edge-label-highlight");}
+    else{ent.line.classList.add("edge-dim"); ent.label.classList.add("edge-label-dim");}
+  }
+  for(const ent of nodeEntries){ent.circle.classList.add("node-dim"); ent.label.classList.add("node-label-dim");}
+  for(const ent of nodeEntries){
+    if(ent.node.id===nodeId){ent.circle.classList.remove("node-dim"); ent.label.classList.remove("node-label-dim");}
+  }
+  // Also un-dim neighbors
+  for(const ent of edgeEntries){
+    if(ent.edge.a===nodeId||ent.edge.b===nodeId){
+      const otherId=ent.edge.a===nodeId?ent.edge.b:ent.edge.a;
+      for(const ne of nodeEntries){ if(ne.node.id===otherId){ne.circle.classList.remove("node-dim"); ne.label.classList.remove("node-label-dim");}}
+    }
+  }
+  updateLOD();
+}
+function clearSel(){ if(selected){ selected.classList.remove("selected"); selected=null; } clearHighlight(); }
 function setInfo(t){ document.getElementById("info").textContent=t; }
 
 const NS="http://www.w3.org/2000/svg";
@@ -410,11 +517,43 @@ const edgeEntries=[], edgeLabelEls={};
 
 const catColors={"M":"var(--mandatory)","O":"var(--optional)","C":"var(--connector)"};
 
+// ====== PRE-COMPUTE CURVE CONTROL POINTS (edge fanning) ======
+// For nodes with many edges, fan them out as slight curves to reduce overlap
+const nodeEdgeList={};
 for(const e of data.edges){
   const a=nodeById.get(e.a), b=nodeById.get(e.b);
-  const line=document.createElementNS(NS,"line");
-  line.setAttribute("x1",a.x); line.setAttribute("y1",a.y);
-  line.setAttribute("x2",b.x); line.setAttribute("y2",b.y);
+  if(!nodeEdgeList[e.a]) nodeEdgeList[e.a]=[];
+  if(!nodeEdgeList[e.b]) nodeEdgeList[e.b]=[];
+  nodeEdgeList[e.a].push({eid:e.id, ang:Math.atan2(b.y-a.y, b.x-a.x)});
+  nodeEdgeList[e.b].push({eid:e.id, ang:Math.atan2(a.y-b.y, a.x-b.x)});
+}
+for(const nid in nodeEdgeList) nodeEdgeList[nid].sort((a,b)=>a.ang-b.ang);
+const edgeCurveData={};
+for(const e of data.edges){
+  const a=nodeById.get(e.a), b=nodeById.get(e.b);
+  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const dist=Math.hypot(dx,dy)||1;
+  const nx=-dy/dist, ny=dx/dist;
+  const listA=nodeEdgeList[e.a], listB=nodeEdgeList[e.b];
+  const rankA=listA.findIndex(x=>x.eid===e.id);
+  const degA=listA.length;
+  const offA=degA>2?(rankA-(degA-1)/2)/degA:0;
+  const rankB=listB.findIndex(x=>x.eid===e.id);
+  const degB=listB.length;
+  const offB=degB>2?(rankB-(degB-1)/2)/degB:0;
+  const off=(offA+offB)/2;
+  const mag=off*Math.min(dist*0.3, 50);
+  const cx2=mx+nx*mag, cy2=my+ny*mag;
+  edgeCurveData[e.id]={cx:cx2, cy:cy2, lx:(a.x+2*cx2+b.x)/4, ly:(a.y+2*cy2+b.y)/4};
+}
+
+for(const e of data.edges){
+  const a=nodeById.get(e.a), b=nodeById.get(e.b);
+  const curve=edgeCurveData[e.id];
+  const line=document.createElementNS(NS,"path");
+  line.setAttribute("d","M"+a.x+","+a.y+" Q"+curve.cx+","+curve.cy+" "+b.x+","+b.y);
+  line.setAttribute("fill","none");
   line.classList.add("edge");
   const sw=edgeWidth(e.cost, e.cat);
   line.setAttribute("stroke", catColors[e.cat]||"#7e889a");
@@ -427,6 +566,7 @@ for(const e of data.edges){
   line.addEventListener("click", function(ev){
     if(didPan) return; ev.stopPropagation(); clearSel();
     selected=line; selected.classList.add("selected");
+    highlightEdge(line, e.a, e.b);
     setInfo("Street #"+e.id+"\nFrom "+e.a+" to "+e.b+"\nCategory: "+e.cat+
       " | Direction: "+(e.dir===1?"one-way":"two-way")+"\nCost: "+e.cost+
       "s | Length: "+e.length+"m | Requirement: "+e.req);
@@ -434,10 +574,9 @@ for(const e of data.edges){
   document.getElementById("edgeLayer").appendChild(line);
 
   const txt=document.createElementNS(NS,"text");
-  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-  const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1;
-  const nx=-dy/d, ny=dx/d, off=sw/2+6+(e.id%3)*2;
-  txt.setAttribute("x",mx+nx*off); txt.setAttribute("y",my+ny*off);
+  const dx2=b.x-a.x, dy2=b.y-a.y, d2=Math.hypot(dx2,dy2)||1;
+  const nx2=-dy2/d2, ny2=dx2/d2, toff=sw/2+6;
+  txt.setAttribute("x",curve.lx+nx2*toff); txt.setAttribute("y",curve.ly+ny2*toff);
   txt.classList.add("edge-label"); txt.textContent=e.label;
   document.getElementById("edgeLabelLayer").appendChild(txt);
   edgeLabelEls[e.id]=txt;
@@ -455,6 +594,7 @@ for(const n of data.nodes){
   c.addEventListener("click", function(ev){
     if(didPan) return; ev.stopPropagation(); clearSel();
     selected=c; selected.classList.add("selected");
+    highlightNode(n.id);
     setInfo("Node "+n.id+(n.isDepot?" (Depot)":"")+"\nDegree: "+n.degree+
       "\nPosition: ("+n.x.toFixed(1)+", "+n.y.toFixed(1)+")");
   });
@@ -585,13 +725,14 @@ const ACT_COL={cleaning:"#22c55e",deadheading:"#f59e0b",depot:"#94a3b8"};
 let simTime=0, animPlaying=false, lastFrame=null, animId=null;
 let speed=1;
 
-// Create edge overlays
+// Create edge overlays (curved paths matching main edges)
 const edgeOvEls={};
 for(const e of data.edges){
   const a=nodeById.get(e.a), b=nodeById.get(e.b);
-  const line=document.createElementNS(NS,"line");
-  line.setAttribute("x1",a.x); line.setAttribute("y1",a.y);
-  line.setAttribute("x2",b.x); line.setAttribute("y2",b.y);
+  const curve=edgeCurveData[e.id];
+  const line=document.createElementNS(NS,"path");
+  line.setAttribute("d","M"+a.x+","+a.y+" Q"+curve.cx+","+curve.cy+" "+b.x+","+b.y);
+  line.setAttribute("fill","none");
   line.setAttribute("stroke-linecap","round");
   line.setAttribute("stroke-width", Math.max(7, edgeWidth(e.cost,e.cat)+2).toFixed(1));
   line.setAttribute("opacity","0"); line.setAttribute("pointer-events","none");
@@ -713,10 +854,13 @@ function updateAnim(t){
                     "At depot";
     vc.info.innerHTML="<span class='v-name'>Vehicle "+vc.v.id+" ("+vc.v.type+")</span><br><span class='v-status'>"+statusTxt+"</span>";
   }
-  // Timeline
-  const slider=document.getElementById("timeline");
-  slider.value=Math.round(t/sol.maxTime*10000)||0;
+  // Timeline (sync both sliders)
+  const sliderVal=Math.round(t/sol.maxTime*10000)||0;
+  document.getElementById("timeline").value=sliderVal;
+  document.getElementById("sideTimeline").value=sliderVal;
   document.getElementById("timeDisplay").textContent=Math.round(t)+"s / "+sol.maxTime+"s";
+  document.getElementById("sideTimeCur").textContent=Math.round(t)+"s";
+  document.getElementById("sideTimeTotal").textContent="/ "+sol.maxTime+"s";
   // Progress
   const p=countCleaned(t);
   const pct=p.total?Math.round(p.cleaned/p.total*100):0;
@@ -739,6 +883,7 @@ function animLoop(ts){
   if(simTime>=sol.maxTime){
     animPlaying=false;
     document.getElementById("playPause").innerHTML="&#9654; Play";
+    document.getElementById("sidePlayPause").innerHTML="&#9654;";
     return;
   }
   animId=requestAnimationFrame(animLoop);
@@ -749,11 +894,13 @@ function togglePlay(){
   if(animPlaying){
     animPlaying=false; lastFrame=null;
     document.getElementById("playPause").innerHTML="&#9654; Play";
+    document.getElementById("sidePlayPause").innerHTML="&#9654;";
     cancelAnimationFrame(animId);
   } else {
     if(simTime>=sol.maxTime) simTime=0;
     animPlaying=true; lastFrame=null;
     document.getElementById("playPause").innerHTML="&#9646;&#9646; Pause";
+    document.getElementById("sidePlayPause").innerHTML="&#9646;&#9646;";
     animId=requestAnimationFrame(animLoop);
   }
 }
@@ -761,6 +908,7 @@ function togglePlay(){
 function resetAnim(){
   animPlaying=false; simTime=0; lastFrame=null;
   document.getElementById("playPause").innerHTML="&#9654; Play";
+  document.getElementById("sidePlayPause").innerHTML="&#9654;";
   cancelAnimationFrame(animId);
   updateAnim(0);
 }
@@ -769,12 +917,47 @@ document.getElementById("playPause").addEventListener("click", togglePlay);
 document.getElementById("resetBtn").addEventListener("click", resetAnim);
 document.getElementById("speedSel").addEventListener("change", function(){
   speed=parseFloat(this.value);
+  document.getElementById("sideSpeedSel").value=this.value;
 });
 document.getElementById("timeline").addEventListener("input", function(){
   if(!hasSol) return;
   const t=parseFloat(this.value)/10000*sol.maxTime;
   simTime=t;
   if(!animPlaying) updateAnim(t);
+});
+
+// Sidebar animation controls
+document.getElementById("sidePlayPause").addEventListener("click", togglePlay);
+document.getElementById("sideReset").addEventListener("click", resetAnim);
+document.getElementById("sideTimeline").addEventListener("input", function(){
+  if(!hasSol) return;
+  const t=parseFloat(this.value)/10000*sol.maxTime;
+  simTime=t;
+  if(!animPlaying) updateAnim(t);
+});
+document.getElementById("sideSpeedSel").addEventListener("change", function(){
+  speed=parseFloat(this.value);
+  document.getElementById("speedSel").value=this.value;
+});
+document.getElementById("sideSkipBack").addEventListener("click", function(){
+  if(!hasSol) return;
+  simTime=Math.max(simTime-sol.maxTime*0.05, 0);
+  if(!animPlaying) updateAnim(simTime);
+});
+document.getElementById("sideStepBack").addEventListener("click", function(){
+  if(!hasSol) return;
+  simTime=Math.max(simTime-sol.maxTime*0.01, 0);
+  if(!animPlaying) updateAnim(simTime);
+});
+document.getElementById("sideStepFwd").addEventListener("click", function(){
+  if(!hasSol) return;
+  simTime=Math.min(simTime+sol.maxTime*0.01, sol.maxTime);
+  if(!animPlaying) updateAnim(simTime);
+});
+document.getElementById("sideSkipFwd").addEventListener("click", function(){
+  if(!hasSol) return;
+  simTime=Math.min(simTime+sol.maxTime*0.05, sol.maxTime);
+  if(!animPlaying) updateAnim(simTime);
 });
 
 // Keyboard shortcuts (animation)

@@ -1,0 +1,511 @@
+% ============================================================================
+%  CLIPP — MILP Formulation  (copy-paste into Overleaf)
+% ============================================================================
+%  Requires:  amsmath, amssymb, amsthm (loaded by most templates).
+%  Standalone compilation:  pdflatex clipp_formulation.tex
+% ============================================================================
+\documentclass[11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+
+% ---- Python code style -----------------------------------------------------
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codegreen}{HTML}{2E7D32}
+\definecolor{codegray}{HTML}{757575}
+\definecolor{codepurple}{HTML}{7B1FA2}
+\definecolor{codeblue}{HTML}{1565C0}
+
+\lstdefinestyle{python}{
+    language=Python,
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{codeblue}\bfseries,
+    stringstyle=\color{codegreen},
+    commentstyle=\color{codegray}\itshape,
+    emphstyle=\color{codepurple},
+    emph={model,solver,cp_model,CpModel,CpSolver,IntVar,BoolVar},
+    numberstyle=\tiny\color{codegray},
+    numbers=left,
+    numbersep=6pt,
+    frame=single,
+    rulecolor=\color{codegray!40},
+    breaklines=true,
+    breakatwhitespace=false,
+    tabsize=4,
+    showstringspaces=false,
+    captionpos=b,
+    aboveskip=8pt,
+    belowskip=8pt,
+}
+\lstset{style=python}
+
+\newcommand{\setN}{\mathcal{N}}   % set of nodes
+\newcommand{\setA}{\mathcal{A}}   % set of arcs
+\newcommand{\setJ}{\mathcal{J}}   % set of streets
+\newcommand{\setK}{\mathcal{K}}   % set of vehicles
+\newcommand{\Jm}{\mathcal{J}_M}   % mandatory streets
+\newcommand{\Jo}{\mathcal{J}_O}   % optional streets
+\newcommand{\Jc}{\mathcal{J}_C}   % connector streets
+\newcommand{\Aj}{A_j}             % arcs of street j
+\newcommand{\depot}{S}
+
+\title{CLIPP --- Mixed-Integer Linear Programming Formulation}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+%% -------------------------------------------------------------------
+\section{Problem overview}
+%% -------------------------------------------------------------------
+
+The \textbf{Climate-Integrated Street Cleaning Routing Problem (CLIPP)}
+plans routes for a heterogeneous fleet of cleaning vehicles on a directed
+street network.  The objective is to maximise the total length of streets
+cleaned while minimising water waste, subject to a shared time budget and
+mandatory-coverage requirements.
+
+%% -------------------------------------------------------------------
+\section{Notation}
+%% -------------------------------------------------------------------
+
+\subsection{Sets}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{} l l @{}}
+\toprule
+Symbol & Description \\
+\midrule
+$\setN = \{0, \dots, N-1\}$       & Junctions (nodes) \\
+$\setJ = \{0, \dots, M-1\}$       & Streets (edges) \\
+$\Jm \subset \setJ$               & Mandatory streets \\
+$\Jo \subset \setJ$               & Optional streets \\
+$\Jc \subset \setJ$               & Connector streets ($\setJ = \Jm \cup \Jo \cup \Jc$) \\
+$\setA$                            & Directed arcs (a two-way street generates two arcs) \\
+$\Aj \subseteq \setA$             & Set of arcs corresponding to street $j$ \\
+$\setK = \{0, \dots, C-1\}$       & Vehicles \\
+$\delta^+(u), \delta^-(u)$         & Outgoing / incoming arcs at node $u$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Parameters}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{} l l @{}}
+\toprule
+Symbol & Description \\
+\midrule
+$T$            & Shared time limit for every vehicle (seconds) \\
+$\depot$       & Depot junction \\
+$W$            & Water-waste penalty factor \\
+$c_a$          & Traversal time of arc $a$ (seconds) \\
+$\ell_j$       & Length of street $j$ (metres) \\
+$r_j$          & Cleaning requirement of street $j$ (litres\,/\,km) \\
+$q_k$          & Water capacity of vehicle $k$ (litres\,/\,km) \\
+$U_a$          & Traversal upper bound for arc $a$: $U_a = \min\!\bigl(\lfloor T / c_a \rfloor,\; 50\bigr)$ \\
+$\mathcal{M}$  & Big-M constant: $\mathcal{M} = 1 + \sum_{a \in \setA} U_a$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% -------------------------------------------------------------------
+\section{Decision variables}
+%% -------------------------------------------------------------------
+
+\begin{align}
+f_{a,k} &\in \mathbb{Z}_{\ge 0}
+    &&\forall\, a \in \setA,\; k \in \setK
+    \tag{flow variable}\\[4pt]
+x_{j,k} &\in \{0,1\}
+    &&\forall\, j \in \setJ \setminus \Jc,\; k \in \setK
+    \tag{cleaning assignment}\\[4pt]
+y_j     &\in \{0,1\}
+    &&\forall\, j \in \setJ \setminus \Jc
+    \tag{cleaned indicator}
+\end{align}
+
+\begin{itemize}[nosep]
+  \item $f_{a,k}$ counts how many times vehicle~$k$ traverses arc~$a$.
+  \item $x_{j,k} = 1$ iff vehicle~$k$ cleans street~$j$.
+  \item $y_j = 1$ iff street~$j$ is cleaned by \emph{any} vehicle.
+\end{itemize}
+
+\medskip\noindent
+\textbf{Note.}
+If vehicle~$k$ cannot clean street~$j$ (i.e.\ $q_k < r_j$, or $j \in \Jc$),
+$x_{j,k}$ is fixed to~$0$ and not created as a decision variable.
+
+\paragraph{Implementation (OR-Tools CP-SAT).}
+\begin{lstlisting}[caption={Decision variable creation (\texttt{clipp/model.py})}]
+# f[a, k]: number of times vehicle k traverses arc a
+def _create_flow_vars(model, A, C, arc_max):
+    f = {}
+    for k in range(C):
+        for a in range(A):
+            f[a, k] = model.new_int_var(0, arc_max[a], f"f_{a}_{k}")
+    return f
+
+# clean[j, k]: BoolVar if vehicle k can clean street j, else fixed 0
+def _create_clean_vars(model, M, C, streets, vehicles):
+    clean = {}
+    for j in range(M):
+        s = streets[j]
+        for k in range(C):
+            if s["cat"] != "C" and vehicles[k]["cap"] >= s["req"]:
+                clean[j, k] = model.new_bool_var(f"clean_{j}_{k}")
+            else:
+                clean[j, k] = 0  # cannot clean -> not a variable
+    return clean
+
+# cleaned[j]: BoolVar for non-connector streets
+def _create_cleaned_vars(model, M, streets):
+    cleaned = {}
+    for j in range(M):
+        if streets[j]["cat"] != "C":
+            cleaned[j] = model.new_bool_var(f"cleaned_{j}")
+        else:
+            cleaned[j] = 0
+    return cleaned
+\end{lstlisting}
+
+%% -------------------------------------------------------------------
+\section{Constraints}
+%% -------------------------------------------------------------------
+
+% ---- (1) Flow conservation ----
+\subsection{Flow conservation}
+
+\begin{equation}\label{eq:flow}
+\sum_{a \in \delta^+(u)} f_{a,k}
+\;=\;
+\sum_{a \in \delta^-(u)} f_{a,k}
+\qquad \forall\, u \in \setN,\; k \in \setK
+\end{equation}
+
+Each vehicle's route forms a \emph{closed walk}: the total flow leaving
+every junction equals the total flow entering it.  This guarantees that the
+vehicle can always return to its starting point (the depot) without
+``teleporting''.
+
+\begin{lstlisting}[caption={Constraint~(\ref{eq:flow}): Flow conservation}]
+def _add_flow_conservation(model, f, N, C, out_arcs, in_arcs):
+    for k in range(C):
+        for u in range(N):
+            out_f = [f[a, k] for a in out_arcs.get(u, [])]
+            in_f  = [f[a, k] for a in in_arcs.get(u, [])]
+            if out_f or in_f:
+                model.add(sum(out_f) == sum(in_f))
+\end{lstlisting}
+
+% ---- (2) Time limit ----
+\subsection{Time limit}
+
+\begin{equation}\label{eq:time}
+\sum_{a \in \setA} c_a \, f_{a,k} \;\le\; T
+\qquad \forall\, k \in \setK
+\end{equation}
+
+The total traversal time of every vehicle must not exceed the shared time
+budget~$T$.
+
+\begin{lstlisting}[caption={Constraint~(\ref{eq:time}): Time limit}]
+def _add_time_constraints(model, f, A, C, T, arc_cost):
+    for k in range(C):
+        model.add(sum(arc_cost[a] * f[a, k] for a in range(A)) <= T)
+\end{lstlisting}
+
+% ---- (3)+(4) Traversal requirement ----
+\subsection{Traversal requirement for cleaning}
+
+\begin{equation}\label{eq:traverse}
+\sum_{a \in \Aj} f_{a,k} \;\ge\; x_{j,k}
+\qquad \forall\, j \in \setJ \setminus \Jc,\; k \in \setK
+\end{equation}
+
+If vehicle~$k$ cleans street~$j$ ($x_{j,k}=1$), it must have traversed at
+least one arc of that street.  A vehicle cannot clean a street it has not
+visited.
+
+\begin{lstlisting}[caption={Constraint~(\ref{eq:traverse}): Traversal requirement}]
+def _add_traversal_requirements(model, f, clean, M, C, streets, street_arcs):
+    for j in range(M):
+        if streets[j]["cat"] == "C":
+            continue
+        for k in range(C):
+            if not isinstance(clean[j, k], int):  # skip fixed-zero vars
+                traversals = [f[a, k] for a in street_arcs[j]]
+                if traversals:
+                    model.add(sum(traversals) >= clean[j, k])
+\end{lstlisting}
+
+% ---- (5) Cleaned linkage ----
+\subsection{Cleaned-indicator linkage}
+
+\begin{align}
+x_{j,k} &\;\Rightarrow\; y_j
+    \qquad &&\forall\, j \in \setJ \setminus \Jc,\; k \in \setK
+    \label{eq:link-impl}\\[4pt]
+y_j &\;\Rightarrow\; \bigvee_{k \in \setK} x_{j,k}
+    \qquad &&\forall\, j \in \setJ \setminus \Jc
+    \label{eq:link-or}
+\end{align}
+
+Together these encode the logical equivalence
+$y_j \Leftrightarrow \bigvee_k x_{j,k}$.
+Constraint~\eqref{eq:link-impl} ensures that the cleaned indicator is
+activated whenever any vehicle cleans the street.
+Constraint~\eqref{eq:link-or} prevents $y_j = 1$ unless at least one
+vehicle actually cleans street~$j$.
+
+\begin{lstlisting}[caption={Constraints~(\ref{eq:link-impl})\,--\,(\ref{eq:link-or}): Cleaned linkage}]
+def _add_cleaned_linkage(model, clean, cleaned, M, C, streets):
+    for j in range(M):
+        if streets[j]["cat"] == "C":
+            continue
+        bool_vars = [
+            clean[j, k] for k in range(C)
+            if isinstance(clean[j, k], cp_model.IntVar)
+        ]
+        if bool_vars:
+            for bv in bool_vars:
+                model.add_implication(bv, cleaned[j])       # x_{j,k} => y_j
+            model.add_bool_or(bool_vars + [cleaned[j].Not()])# y_j => OR_k x_{j,k}
+        else:
+            model.add(cleaned[j] == 0)
+\end{lstlisting}
+
+% ---- (6) Single cleaner ----
+\subsection{Single-vehicle cleaning}
+
+\begin{equation}\label{eq:single}
+\sum_{k \in \setK} x_{j,k} \;\le\; 1
+\qquad \forall\, j \in \setJ \setminus \Jc
+\end{equation}
+
+Each street is cleaned by \emph{at most one} vehicle.  While the problem
+statement allows redundant cleaning, the solver enforces single-vehicle
+cleaning to avoid unnecessary water waste (the street's length is scored
+only once regardless).
+
+\begin{lstlisting}[caption={Constraint~(\ref{eq:single}): Single-vehicle cleaning}]
+def _add_single_cleaner(model, clean, M, C, streets):
+    for j in range(M):
+        if streets[j]["cat"] == "C":
+            continue
+        bool_vars = [
+            clean[j, k] for k in range(C)
+            if isinstance(clean[j, k], cp_model.IntVar)
+        ]
+        if len(bool_vars) > 1:
+            model.add(sum(bool_vars) <= 1)
+\end{lstlisting}
+
+% ---- (7) Mandatory coverage ----
+\subsection{Mandatory coverage}
+
+\begin{equation}\label{eq:mandatory}
+y_j = 1
+\qquad \forall\, j \in \Jm
+\end{equation}
+
+Every mandatory street must be cleaned.  A solution that violates this
+constraint is infeasible.
+
+\medskip\noindent
+\textbf{Relaxation.}
+If a mandatory street is provably unreachable within the time budget (detected
+via a Dijkstra-based pre-check), its hard constraint is relaxed to a soft
+one --- it is still scored if cleaned, but the solver will not be forced into
+infeasibility.
+
+\begin{lstlisting}[caption={Constraint~(\ref{eq:mandatory}): Mandatory coverage}]
+def _add_mandatory_constraints(model, cleaned, M, streets, relaxed_mandatory):
+    for j in range(M):
+        if streets[j]["cat"] == "M":
+            if j in relaxed_mandatory:
+                continue  # provably unreachable -- keep as soft
+            assert isinstance(cleaned[j], cp_model.IntVar)
+            model.add(cleaned[j] == 1)
+\end{lstlisting}
+
+% ---- (8) Depot inclusion ----
+\subsection{Depot inclusion (Big-M)}
+
+\begin{equation}\label{eq:depot}
+\sum_{a \in \setA} f_{a,k}
+\;\le\;
+\mathcal{M} \cdot \sum_{a \in \delta^+(\depot)} f_{a,k}
+\qquad \forall\, k \in \setK
+\end{equation}
+
+If vehicle~$k$ uses any arc at all (left-hand side $> 0$), then it must
+have at least one outgoing traversal from the depot.  Combined with flow
+conservation~\eqref{eq:flow}, this forces the vehicle's closed walk to
+pass through the depot.  When the depot has zero outgoing flow, the
+right-hand side becomes~$0$, prohibiting any arc usage --- i.e.\ an
+unused vehicle simply stays at the depot.
+
+\begin{lstlisting}[caption={Constraint~(\ref{eq:depot}): Depot inclusion (Big-M)}]
+def _add_depot_inclusion(model, f, A, C, S, out_arcs, arc_max):
+    big_M_val = sum(arc_max) + 1
+    for k in range(C):
+        depot_out_arcs = out_arcs.get(S, [])
+        if depot_out_arcs:
+            depot_out_sum  = sum(f[a, k] for a in depot_out_arcs)
+            total_flow_sum = sum(f[a, k] for a in range(A))
+            model.add(total_flow_sum <= big_M_val * depot_out_sum)
+\end{lstlisting}
+
+%% -------------------------------------------------------------------
+\section{Objective function}
+%% -------------------------------------------------------------------
+
+\begin{equation}\label{eq:obj}
+\max \quad
+\underbrace{%
+    \sum_{j \in \setJ \setminus \Jc} \ell_j \, y_j
+}_{\text{total length cleaned}}
+\;-\;
+W \cdot
+\underbrace{%
+    \sum_{j \in \setJ \setminus \Jc}
+    \sum_{k \in \setK}
+    \frac{(q_k - r_j) \, \ell_j}{1000}
+    \, x_{j,k}
+}_{\text{total water wasted (litres)}}
+\end{equation}
+
+\begin{itemize}[nosep]
+  \item The first term rewards cleaning longer streets.
+  \item The second term penalises water waste: for every street cleaned, the
+        \emph{excess} capacity $(q_k - r_j)$ in litres\,/\,km times the
+        street length (converted from metres to kilometres by dividing by
+        1000) gives the wasted litres.
+  \item The penalty factor $W$ controls the trade-off between coverage and
+        efficiency.  When $W = 0$ the problem reduces to pure coverage
+        maximisation.
+\end{itemize}
+
+\medskip\noindent
+\textbf{Implementation detail.}
+To keep the solver in integer arithmetic the entire objective is scaled by a
+factor of $1000$; this does not change the optimal solution.
+
+\begin{lstlisting}[caption={Objective function implementation}]
+_OBJ_SCALE = 1000
+
+def _set_objective(model, clean, cleaned, M, C, streets, vehicles, W):
+    W_scaled = int(round(W * _OBJ_SCALE))
+    obj_terms = []
+
+    for j in range(M):
+        s = streets[j]
+        if s["cat"] == "C":
+            continue
+
+        # Positive term: length contribution
+        if isinstance(cleaned[j], cp_model.IntVar):
+            obj_terms.append(_OBJ_SCALE * s["length"] * cleaned[j])
+
+        # Negative term: water-waste penalty
+        for k in range(C):
+            if not isinstance(clean[j, k], cp_model.IntVar):
+                continue
+            excess = vehicles[k]["cap"] - s["req"]
+            if excess > 0 and W_scaled > 0:
+                penalty = W_scaled * excess * s["length"] // 1000
+                if penalty > 0:
+                    obj_terms.append(-penalty * clean[j, k])
+
+    model.maximize(sum(obj_terms) if obj_terms else 0)
+\end{lstlisting}
+
+%% -------------------------------------------------------------------
+\section{Subtour elimination (iterative)}
+%% -------------------------------------------------------------------
+
+Flow conservation alone does not prevent \emph{subtours} — disconnected
+cycles that never visit the depot.  These are eliminated lazily via an
+iterative callback:
+
+\begin{enumerate}[nosep]
+  \item Solve the model.
+  \item For each vehicle~$k$, compute the weakly-connected components of its
+        arc-flow multigraph.
+  \item For every component~$\mathcal{C}$ that does \emph{not} contain the
+        depot, add the cut:
+        \begin{equation}\label{eq:subtour}
+        \sum_{\substack{a \in \setA :\\[1pt] \mathrm{head}(a) \in \mathcal{C} \\[1pt] \mathrm{tail}(a) \in \mathcal{C}}}
+             f_{a,k}
+        \;\le\;
+        \biggl(\,1 + \!\!\sum_{\substack{a \in \setA :\\[1pt] \mathrm{head}(a) \in \mathcal{C} \\[1pt] \mathrm{tail}(a) \in \mathcal{C}}}\!\! U_a \biggr)
+        \cdot
+        \sum_{\substack{a \in \setA :\\[1pt] \mathrm{tail}(a) \notin \mathcal{C} \\[1pt] \mathrm{head}(a) \in \mathcal{C}}}
+             f_{a,k}
+        \end{equation}
+        If no arcs enter the component, all internal arcs are set to~$0$.
+  \item Re-solve with the new constraints (warm-started).
+  \item Repeat until no subtours remain or the time budget is exhausted.
+\end{enumerate}
+
+\begin{lstlisting}[caption={Subtour elimination implementation}]
+def _eliminate_subtours(model, f, f_vals, arcs, arc_max, A, C, S):
+    subtours_found = False
+
+    for k in range(C):
+        total_used = sum(f_vals[a, k] for a in range(A))
+        if total_used == 0:
+            continue
+
+        adj_k = build_adj_multigraph(k, f_vals, arcs)
+        comps = connected_components(adj_k)
+
+        for comp in comps:
+            if S in comp:
+                continue  # connected to depot -- OK
+
+            internal = [
+                a for a in range(A)
+                if arcs[a][0] in comp and arcs[a][1] in comp
+            ]
+            entering = [
+                a for a in range(A)
+                if arcs[a][0] not in comp and arcs[a][1] in comp
+            ]
+            if not internal:
+                continue
+
+            if entering:
+                big_M_sub = sum(arc_max[a] for a in internal) + 1
+                model.add(
+                    sum(f[a, k] for a in internal)
+                    <= big_M_sub * sum(f[a, k] for a in entering)
+                )
+            else:
+                for a in internal:
+                    model.add(f[a, k] == 0)
+
+            subtours_found = True
+    return subtours_found
+\end{lstlisting}
+
+%% -------------------------------------------------------------------
+\section{Post-processing: route reconstruction}
+%% -------------------------------------------------------------------
+
+After solving, each vehicle's arc-flow solution is converted into an
+explicit junction sequence via \textbf{Hierholzer's algorithm} for Eulerian
+circuits.  If any connected component of a vehicle's multigraph is
+disconnected from the depot, a shortest-path bridge (depot $\to$ component
+$\to$ depot) is inserted when the remaining time budget permits; otherwise
+the component's arcs are dropped.
+
+\end{document}

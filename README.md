@@ -11,7 +11,7 @@ Given a city street network, a fleet of heterogeneous cleaning vehicles, and a t
 pip install -r requirements.txt
 
 # Run the solver
-python clipp_solver.py Instances/toy.txt --time_limit 60 --num_workers 4
+python clipp_solver.py instances/toy.txt --time_limit 60 --num_workers 4
 ```
 
 ### CLI Arguments
@@ -53,7 +53,7 @@ A B D cost length cat req   ← M street lines
 type1 type2 ...         ← C vehicle types (S/M/L)
 ```
 
-**Example** (`Instances/toy.txt`):
+**Example** (`instances/toy.txt`):
 
 ```
 6 10 300 3 0
@@ -84,7 +84,7 @@ S M L
 │   ├── scoring.py           #   Objective function evaluation
 │   └── io.py                #   Solution file output
 │
-├── Instances/               # Problem instances & solutions
+├── instances/               # Problem instances & solutions
 │   ├── toy.txt              #   Small test instance (6 junctions, 10 streets)
 │   ├── A_instance_V2.txt    #   Medium instance
 │   └── B_instance.txt       #   Larger instance

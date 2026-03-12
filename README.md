@@ -114,9 +114,13 @@ Validates an existing solution file against the instance rules (depot start/end,
 
 ### `visualize_instance.py`
 
+
 Generates an interactive HTML graph of the street network, colour-coded by category.
 
 ![1773322098132](images/README/1773322098132.png)
+
+https://github.com/user-attachments/assets/25d7d303-8517-45b0-9540-60a0d6b0dfaa
+
 
 ## Requirements
 

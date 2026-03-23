@@ -20,8 +20,8 @@ def write_output(
         j_0 j_1 ... j_n          <- n+1 junction indices (starts/ends at depot)
         s_0 s_1 ...              <- street indices cleaned (empty line if none)
 
-    If the vehicle never leaves the depot (``route=[S]``), writes ``n=1``
-    with a single junction.
+    If the vehicle never leaves the depot (``route=[S]``), writes ``n=0``
+    with a single junction ``[S]``.
 
     Parameters
     ----------
@@ -39,7 +39,7 @@ def write_output(
         for k in range(C):
             route   = routes[k]
             cleaned = sorted(clean_per_vehicle[k])
-            n = max(len(route) - 1, 1)
+            n = len(route) - 1
             fh.write(f"{n}\n")
             fh.write(" ".join(map(str, route)) + "\n")
             fh.write(" ".join(map(str, cleaned)) + "\n")

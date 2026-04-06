@@ -43,7 +43,7 @@ Key challenges:
 - **Multiple vehicles** with different water capacities (S/M/L).
 - **Three street categories**: Mandatory (must clean), Optional (reward for cleaning), Connector (traversal-only, no cleaning).
 - **Capacity matching**: A small vehicle can't clean a heavy-requirement street.
-- **Water waste penalty**: A large vehicle cleaning a light street wastes water — the objective penalises this.
+- **Coverage vs efficiency trade-off**: α controls how strongly coverage is prioritized vs low waste.
 - **Shared time budget**: Every vehicle must complete its route within T seconds.
 
 ---
@@ -86,15 +86,21 @@ This is implemented in `clipp/graph.py :: build_arcs()`. The result is a list of
 ### 3.3 Objective Function
 
 ```
-Maximise: Σ_j ℓ_j · y_j  −  W · Σ_j Σ_k [(q_k − r_j) · ℓ_j / 1000] · x[j,k]
+Maximise: α × Coverage + (1 − α) × Efficiency
+
+Coverage   = (Σ_j ℓ_j · y_j) / L_max
+Efficiency = 1 − (Σ_j Σ_k [(q_k − r_j) · ℓ_j / 1000] · x[j,k]) / W_max
+
+L_max = Σ_j ℓ_j                       (all mandatory + optional streets)
+W_max = Σ_j [(30 − r_j) · ℓ_j / 1000] (all mandatory + optional streets)
 ```
 
-- **First term**: Total length of all cleaned streets (in metres).
-- **Second term**: Total water wasted across all cleaning assignments (in litres), scaled by the penalty factor W.
+- **Coverage** rewards cleaning a larger share of cleanable streets.
+- **Efficiency** rewards lower water waste relative to the worst-case Large-vehicle baseline.
 
 The waste for one cleaning event: vehicle k cleans street j → it uses `q_k` L/km but only `r_j` L/km was needed → excess is `(q_k − r_j)` L/km × `ℓ_j / 1000` km = wasted litres.
 
-**Implementation detail**: Since W can be a decimal (e.g., 1.5), and CP-SAT requires integer coefficients, the entire objective is scaled by 1000. This doesn't change the optimal solution, only the reported objective value.
+**Implementation detail**: Since α can be fractional and CP-SAT requires integer coefficients, the objective coefficients are scaled by a large integer constant. This doesn't change the optimal solution, only the internal numeric scale.
 
 ---
 
@@ -107,7 +113,7 @@ We'll use this tiny city throughout all constraint examples:
 ```
 Junctions:  0 (depot), 1, 2, 3, 4
 Time budget: T = 100 seconds
-Waste penalty: W = 2.0
+Weight: alpha = 0.5
 
 Streets:
   Street 0: 0 ↔ 1  (two-way, Mandatory,  length=200m, cost=10s, requirement=5 L/km)
@@ -290,15 +296,15 @@ x[4, k1] = 1  (Small,  q=4  L/km)
 Coverage reward:  250m  (counted once via y[4], regardless of how many vehicles clean it)
 Waste from k0:    (10 − 4) × 250/1000 = 1.50 L
 Waste from k1:    (4 − 4)  × 250/1000 = 0.00 L
-Total waste:      1.50 L × W(=2.0) = 3.0 penalty
+Total waste:      1.50 L  (efficiency decreases accordingly)
 ```
 
 If only k1 cleans it:
 ```
-Coverage: 250m (same)    Waste: 0.00 L    Penalty: 0.0
+Coverage: 250m (same)    Waste: 0.00 L    Better efficiency
 ```
 
-Duplicate cleaning adds waste penalty but no extra coverage. The constraint saves the solver from exploring these dominated solutions.
+Duplicate cleaning adds waste with no extra coverage. The constraint saves the solver from exploring these dominated solutions.
 
 ### 4.6 Mandatory Coverage
 

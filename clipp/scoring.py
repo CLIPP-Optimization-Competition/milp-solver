@@ -8,9 +8,9 @@ __all__ = ["compute_score"]
 def compute_score(
     instance: dict,
     clean_per_vehicle: list[list[int]],
-) -> tuple[float, int, float, set[int]]:
+) -> tuple[float, float, float, int, float, int, float, set[int]]:
     """
-    Compute the CLIPP objective value for a given solution.
+    Compute the CLIPP normalized objective value for a given solution.
 
     Parameters
     ----------
@@ -22,17 +22,25 @@ def compute_score(
     Returns
     -------
     score : float
-        ``total_length - W * total_waste``.
+        ``alpha * coverage + (1 - alpha) * efficiency``.
+    coverage : float
+        Normalized coverage in ``[0, 1]``.
+    efficiency : float
+        Normalized efficiency in ``[0, 1]``.
     total_length : int
         Sum of cleaned street lengths (metres).
     total_waste : float
         Total water wasted (litres).
+    L_max : int
+        Sum of lengths of all mandatory/optional streets.
+    W_max : float
+        Worst-case waste if all mandatory/optional streets are cleaned by L.
     cleaned_set : set[int]
         Set of cleaned street indices.
     """
     streets  = instance["streets"]
     vehicles = instance["vehicles"]
-    W        = instance["W"]
+    alpha    = instance["alpha"]
 
     cleaned_length: dict[int, int] = {}  # j → length (counted once)
     total_waste = 0.0
@@ -48,5 +56,24 @@ def compute_score(
                 cleaned_length[j] = s["length"]
 
     total_length = sum(cleaned_length.values())
-    score        = total_length - W * total_waste
-    return score, total_length, total_waste, set(cleaned_length.keys())
+    L_max = sum(s["length"] for s in streets if s["cat"] != "C")
+    W_max = sum(
+        max(0, 30 - s["req"]) * s["length"] / 1000.0
+        for s in streets if s["cat"] != "C"
+    )
+
+    coverage = (total_length / L_max) if L_max > 0 else 1.0
+    efficiency = 1.0 - (total_waste / W_max) if W_max > 0 else 1.0
+    efficiency = max(0.0, min(1.0, efficiency))
+    score = alpha * coverage + (1.0 - alpha) * efficiency
+
+    return (
+        score,
+        coverage,
+        efficiency,
+        total_length,
+        total_waste,
+        L_max,
+        W_max,
+        set(cleaned_length.keys()),
+    )

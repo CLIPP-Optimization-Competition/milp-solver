@@ -105,7 +105,9 @@ Symbol & Description \\
 \midrule
 $T$            & Shared time limit for every vehicle (seconds) \\
 $\depot$       & Depot junction \\
-$W$            & Water-waste penalty factor \\
+$\alpha$       & Coverage/efficiency trade-off weight, $0 \le \alpha \le 1$ \\
+$L_{\max}$     & Total cleanable street length (mandatory + optional) \\
+$W_{\max}$     & Worst-case waste if all cleanable streets use a Large vehicle \\
 $c_a$          & Traversal time of arc $a$ (seconds) \\
 $\ell_j$       & Length of street $j$ (metres) \\
 $r_j$          & Cleaning requirement of street $j$ (litres\,/\,km) \\
@@ -370,40 +372,46 @@ def _add_depot_inclusion(model, f, A, C, S, out_arcs, arc_max):
 
 \begin{equation}\label{eq:obj}
 \max \quad
+\alpha \cdot
 \underbrace{%
-    \sum_{j \in \setJ \setminus \Jc} \ell_j \, y_j
-}_{\text{total length cleaned}}
-\;-\;
-W \cdot
+    \frac{\sum_{j \in \setJ \setminus \Jc} \ell_j \, y_j}{L_{\max}}
+}_{\text{Coverage}}
+\;+\;
+(1-\alpha) \cdot
 \underbrace{%
-    \sum_{j \in \setJ \setminus \Jc}
+    \left(
+    1 -
+    \frac{\sum_{j \in \setJ \setminus \Jc}
     \sum_{k \in \setK}
     \frac{(q_k - r_j) \, \ell_j}{1000}
-    \, x_{j,k}
-}_{\text{total water wasted (litres)}}
+    \, x_{j,k}}{W_{\max}}
+    \right)
+}_{\text{Efficiency}}
 \end{equation}
 
 \begin{itemize}[nosep]
-  \item The first term rewards cleaning longer streets.
-  \item The second term penalises water waste: for every street cleaned, the
-        \emph{excess} capacity $(q_k - r_j)$ in litres\,/\,km times the
-        street length (converted from metres to kilometres by dividing by
-        1000) gives the wasted litres.
-  \item The penalty factor $W$ controls the trade-off between coverage and
-        efficiency.  When $W = 0$ the problem reduces to pure coverage
-        maximisation.
+  \item Coverage is normalized by $L_{\max}$ (total cleanable length).
+  \item Efficiency is normalized by $W_{\max}$ (worst-case waste under Large-vehicle cleaning).
+  \item The parameter $\alpha$ controls the trade-off. When $\alpha=1$, only
+        coverage matters; when $\alpha=0$, only efficiency matters.
 \end{itemize}
 
 \medskip\noindent
 \textbf{Implementation detail.}
-To keep the solver in integer arithmetic the entire objective is scaled by a
-factor of $1000$; this does not change the optimal solution.
+To keep the solver in integer arithmetic, objective coefficients are scaled
+by a large constant; this does not change the optimal solution.
 
 \begin{lstlisting}[caption={Objective function implementation}]
-_OBJ_SCALE = 1000
+_OBJ_SCALE = 1_000_000_000
 
-def _set_objective(model, clean, cleaned, M, C, streets, vehicles, W):
-    W_scaled = int(round(W * _OBJ_SCALE))
+def _set_objective(model, clean, cleaned, M, C, streets, vehicles, alpha):
+    L_max = sum(s["length"] for s in streets if s["cat"] != "C")
+    W_max = sum(
+        max(0, 30 - s["req"]) * s["length"] / 1000.0
+        for s in streets if s["cat"] != "C"
+    )
+    cov_weight = (alpha / L_max) if L_max > 0 else 0.0
+    eff_penalty_weight = ((1.0 - alpha) / W_max) if W_max > 0 else 0.0
     obj_terms = []
 
     for j in range(M):
@@ -411,17 +419,20 @@ def _set_objective(model, clean, cleaned, M, C, streets, vehicles, W):
         if s["cat"] == "C":
             continue
 
-        # Positive term: length contribution
+        # Positive term: normalized coverage contribution
         if isinstance(cleaned[j], cp_model.IntVar):
-            obj_terms.append(_OBJ_SCALE * s["length"] * cleaned[j])
+            coeff = int(round(_OBJ_SCALE * cov_weight * s["length"]))
+            if coeff > 0:
+                obj_terms.append(coeff * cleaned[j])
 
-        # Negative term: water-waste penalty
+        # Negative term: normalized efficiency loss
         for k in range(C):
             if not isinstance(clean[j, k], cp_model.IntVar):
                 continue
             excess = vehicles[k]["cap"] - s["req"]
-            if excess > 0 and W_scaled > 0:
-                penalty = W_scaled * excess * s["length"] // 1000
+            if excess > 0 and eff_penalty_weight > 0:
+                waste_liters = excess * s["length"] / 1000.0
+                penalty = int(round(_OBJ_SCALE * eff_penalty_weight * waste_liters))
                 if penalty > 0:
                     obj_terms.append(-penalty * clean[j, k])
 

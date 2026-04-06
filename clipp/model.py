@@ -65,12 +65,12 @@ def solve_milp(
         8. Depot-inclusion (big-M): a vehicle that uses any arc must visit depot.
 
     **Objective**
-        Maximise ``sum_j length[j] * cleaned[j] - W * sum_{j,k} waste * clean[j,k]``
+        Maximise ``alpha * Coverage + (1-alpha) * Efficiency`` (normalized).
     """
     if relaxed_mandatory is None:
         relaxed_mandatory = set()
 
-    N, M, T, C, S, W = (instance[k] for k in ("N", "M", "T", "C", "S", "W"))
+    N, M, T, C, S, alpha = (instance[k] for k in ("N", "M", "T", "C", "S", "alpha"))
     streets  = instance["streets"]
     vehicles = instance["vehicles"]
 
@@ -97,7 +97,7 @@ def solve_milp(
     _add_depot_inclusion(model, f, A, C, S, out_arcs, arc_max)
 
     # ---- Objective ---------------------------------------------------------
-    _set_objective(model, clean, cleaned, M, C, streets, vehicles, W)
+    _set_objective(model, clean, cleaned, M, C, streets, vehicles, alpha)
 
     # ---- Iterative solve with subtour elimination --------------------------
     print(f"\n[Solver] CP-SAT  |  time_limit={time_limit_sec}s  |  workers={num_workers}")
@@ -239,17 +239,30 @@ def _add_depot_inclusion(model, f, A, C, S, out_arcs, arc_max):
 # Objective
 # ---------------------------------------------------------------------------
 
-_OBJ_SCALE = 1000
+_OBJ_SCALE = 1_000_000_000
 
 
-def _set_objective(model, clean, cleaned, M, C, streets, vehicles, W):
+def _set_objective(model, clean, cleaned, M, C, streets, vehicles, alpha):
     """
-    Maximise total cleaned length minus water-waste penalty.
+    Maximise weighted sum of normalized coverage and efficiency.
 
-    Scaled by :data:`_OBJ_SCALE` to keep integer arithmetic when *W* has
-    decimals.
+    Score = alpha * (total_cleaned_length / L_max)
+            + (1 - alpha) * (1 - total_waste / W_max)
+
+    The additive constant ``(1-alpha)`` is omitted because it does not affect
+    argmax decisions.
+
+    Scaled by :data:`_OBJ_SCALE` to keep integer arithmetic.
     """
-    W_scaled = int(round(W * _OBJ_SCALE))
+    L_max = sum(s["length"] for s in streets if s["cat"] != "C")
+    W_max = sum(
+        max(0, 30 - s["req"]) * s["length"] / 1000.0
+        for s in streets if s["cat"] != "C"
+    )
+
+    cov_weight = (alpha / L_max) if L_max > 0 else 0.0
+    eff_penalty_weight = ((1.0 - alpha) / W_max) if W_max > 0 else 0.0
+
     obj_terms = []
 
     for j in range(M):
@@ -257,17 +270,20 @@ def _set_objective(model, clean, cleaned, M, C, streets, vehicles, W):
         if s["cat"] == "C":
             continue
 
-        # Positive: length contribution
+        # Positive: normalized coverage contribution
         if isinstance(cleaned[j], cp_model.IntVar):
-            obj_terms.append(_OBJ_SCALE * s["length"] * cleaned[j])
+            coeff = int(round(_OBJ_SCALE * cov_weight * s["length"]))
+            if coeff > 0:
+                obj_terms.append(coeff * cleaned[j])
 
-        # Negative: water-waste penalty per cleaning vehicle
+        # Negative: normalized efficiency loss from water waste
         for k in range(C):
             if not isinstance(clean[j, k], cp_model.IntVar):
                 continue
             excess = vehicles[k]["cap"] - s["req"]
-            if excess > 0 and W_scaled > 0:
-                penalty = W_scaled * excess * s["length"] // 1000
+            if excess > 0 and eff_penalty_weight > 0:
+                waste_liters = excess * s["length"] / 1000.0
+                penalty = int(round(_OBJ_SCALE * eff_penalty_weight * waste_liters))
                 if penalty > 0:
                     obj_terms.append(-penalty * clean[j, k])
 

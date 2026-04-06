@@ -35,7 +35,7 @@ def parse_instance(filepath):
     t_limit = int(header[2])
     c = int(header[3])
     depot = int(header[4])
-    w_penalty = float(header[5]) if len(header) >= 6 else 0.0
+    alpha = float(header[5]) if len(header) >= 6 else 0.5
 
     junction_coords = []
     if idx < len(raw):
@@ -66,7 +66,7 @@ def parse_instance(filepath):
     vehicles = [{"type": tok, "cap": cap[tok]} for tok in vehicle_tokens]
 
     return {
-        "N": n, "M": m, "T": t_limit, "C": c, "S": depot, "W": w_penalty,
+      "N": n, "M": m, "T": t_limit, "C": c, "S": depot, "alpha": alpha,
         "streets": streets, "vehicles": vehicles, "junction_coords": junction_coords,
     }
 
@@ -327,7 +327,7 @@ def build_view_data(instance, points, width, height):
     return {
         "meta": {
             "N": instance["N"], "M": instance["M"], "T": instance["T"],
-            "C": instance["C"], "S": instance["S"], "W": instance["W"],
+        "C": instance["C"], "S": instance["S"], "alpha": instance["alpha"],
             "fleet": [v["type"] for v in vehicles],
             "categoryCounts": cat_counts,
             "viewWidth": width, "viewHeight": height,

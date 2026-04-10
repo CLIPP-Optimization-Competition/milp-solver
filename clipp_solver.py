@@ -137,7 +137,7 @@ def main():
     print("\n[Validation]")
     valid, errors = validate_solution(instance, routes, clean_per_vehicle)
     if valid:
-        print("  Solution is VALID. ✓")
+        print("  Solution is VALID.")
     else:
         print(f"  Solution has {len(errors)} error(s):")
         for e in errors:

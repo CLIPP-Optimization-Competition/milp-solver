@@ -17,8 +17,8 @@ def parse_instance(filepath: str) -> dict:
 
     Supported header formats
     ------------------------
-    ``N M T C S``       – *W* defaults to 0, no junction coordinates.
-    ``N M T C S W``     – *W* given, no junction coordinates.
+    ``N M T C S``       – *alpha* defaults to 0.5, no junction coordinates.
+    ``N M T C S alpha`` – *alpha* given, no junction coordinates.
 
     After the header an **optional** junction-coordinate block (N lines of two
     floats) may appear, followed by M street lines and one vehicle-types line.
@@ -31,7 +31,7 @@ def parse_instance(filepath: str) -> dict:
     Returns
     -------
     dict
-        Keys: ``N``, ``M``, ``T``, ``C``, ``S``, ``W``, ``streets``,
+        Keys: ``N``, ``M``, ``T``, ``C``, ``S``, ``alpha``, ``streets``,
         ``vehicles``, ``junction_coords``.
     """
     with open(filepath) as fh:
@@ -48,7 +48,8 @@ def parse_instance(filepath: str) -> dict:
     T = int(header[2])   # time limit (seconds)
     C = int(header[3])   # vehicles
     S = int(header[4])   # depot junction
-    W = float(header[5]) if len(header) >= 6 else 0.0  # water-waste penalty
+    alpha = float(header[5]) if len(header) >= 6 else 0.5
+    assert 0.0 <= alpha <= 1.0, f"alpha must be in [0,1], got {alpha}"
 
     # ---- Optional junction-coordinate block --------------------------------
     junction_coords: list[tuple[float, float]] = []
@@ -100,7 +101,7 @@ def parse_instance(filepath: str) -> dict:
     vehicles = [{"type": t, "cap": VEHICLE_CAPACITY[t]} for t in vehicle_tokens]
 
     return {
-        "N": N, "M": M, "T": T, "C": C, "S": S, "W": W,
+        "N": N, "M": M, "T": T, "C": C, "S": S, "alpha": alpha,
         "streets": streets, "vehicles": vehicles,
         "junction_coords": junction_coords,
     }

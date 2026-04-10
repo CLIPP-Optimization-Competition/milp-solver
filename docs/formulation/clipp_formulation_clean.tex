@@ -50,8 +50,15 @@ if $q_k \ge r_j$; connector streets ($j \in \mathcal{J}_C$) cannot be
 cleaned.
 
 Let $T$ be the shared time limit for every vehicle, $S \in \mathcal{N}$ the
-depot junction at which all vehicles start and must return, and $W \ge 0$
-the water-waste penalty factor.  Define $U_a = \min(\lfloor T / c_a
+depot junction at which all vehicles start and must return, and
+$\alpha \in [0,1]$ the trade-off weight between coverage and efficiency.
+Define
+\[
+L_{\max}=\sum_{j\in \mathcal{J}\setminus\mathcal{J}_C}\ell_j,
+\qquad
+W_{\max}=\sum_{j\in \mathcal{J}\setminus\mathcal{J}_C}\frac{(30-r_j)\,\ell_j}{1000},
+\]
+and $U_a = \min(\lfloor T / c_a
 \rfloor,\, 50)$ as the traversal upper bound for arc~$a$ and $\mathcal{M}
 = 1 + \sum_{a \in \mathcal{A}} U_a$ as the Big-M constant.
 
@@ -92,7 +99,9 @@ Symbol & Description \\
 \midrule
 $T$            & Shared time limit for every vehicle (seconds) \\
 $\depot$       & Depot junction \\
-$W$            & Water-waste penalty factor \\
+$\alpha$       & Coverage/efficiency trade-off weight, $0 \le \alpha \le 1$ \\
+$L_{\max}$     & Total cleanable street length (mandatory + optional) \\
+$W_{\max}$     & Worst-case waste if all cleanable streets use a Large vehicle \\
 $c_a$          & Traversal time of arc $a$ (seconds) \\
 $\ell_j$       & Length of street $j$ (metres) \\
 $r_j$          & Cleaning requirement of street $j$ (litres\,/\,km) \\
@@ -137,11 +146,14 @@ Problem can be formulated as follows:
 
 \begin{align}
 \text{Maximise} \quad
-& \sum_{j \in \mathcal{J} \setminus \mathcal{J}_C} \ell_j \, y_j
-\;-\;
-W \sum_{j \in \mathcal{J} \setminus \mathcal{J}_C}
+& \alpha \cdot \frac{\sum_{j \in \mathcal{J} \setminus \mathcal{J}_C} \ell_j \, y_j}{L_{\max}}
+\;+
+(1-\alpha) \cdot \left(
+1-
+\frac{\sum_{j \in \mathcal{J} \setminus \mathcal{J}_C}
   \sum_{k \in \mathcal{K}}
-  \frac{(q_k - r_j)\,\ell_j}{1000}\, x_{j,k}
+  \frac{(q_k - r_j)\,\ell_j}{1000}\, x_{j,k}}{W_{\max}}
+\right)
 && \tag{1} \label{eq:obj} \\[10pt]
 %
 \text{subject to} \notag \\[4pt]
@@ -201,11 +213,12 @@ W \sum_{j \in \mathcal{J} \setminus \mathcal{J}_C}
 \section{Model Description}
 
 The objective function~\eqref{eq:obj} seeks to maximise the total length of
-cleaned streets minus a penalty for water waste.  The first term sums the
-length of every street that is cleaned; the second term accounts for the
-excess water used when a vehicle's capacity exceeds the street's
-requirement, weighted by the penalty factor~$W$.  When $W = 0$ the problem
-reduces to pure coverage maximisation.
+cleaned streets and water efficiency via two normalized terms. The first
+term is coverage (cleaned length divided by $L_{\max}$). The second term is
+efficiency, defined as one minus normalized waste (total waste divided by
+$W_{\max}$).  The parameter $\alpha$ controls the trade-off: when
+$\alpha = 1$ the objective is pure coverage, and when $\alpha = 0$ it is
+pure efficiency.
 
 Constraint~\eqref{eq:flow} enforces \emph{flow conservation} at every
 junction for each vehicle: the total flow leaving a junction equals the

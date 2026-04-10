@@ -56,9 +56,9 @@ def main():
 
     # --- Parse ---
     instance = parse_instance(args.input_file)
-    N, M, T, C, S, W = (instance[k] for k in ('N', 'M', 'T', 'C', 'S', 'W'))
+    N, M, T, C, S, alpha = (instance[k] for k in ('N', 'M', 'T', 'C', 'S', 'alpha'))
     cats = collections.Counter(s['cat'] for s in instance['streets'])
-    print(f"\nInstance: N={N}  M={M}  T={T}s  C={C}  depot={S}  W={W}")
+    print(f"\nInstance: N={N}  M={M}  T={T}s  C={C}  depot={S}  alpha={alpha}")
     print(f"  Streets: {cats['M']} mandatory  {cats['O']} optional  {cats['C']} connector")
     print(f"  Fleet  : {[v['type'] for v in instance['vehicles']]}")
 
@@ -137,14 +137,14 @@ def main():
     print("\n[Validation]")
     valid, errors = validate_solution(instance, routes, clean_per_vehicle)
     if valid:
-        print("  Solution is VALID. ✓")
+        print("  Solution is VALID.")
     else:
         print(f"  Solution has {len(errors)} error(s):")
         for e in errors:
             print(f"    - {e}")
 
     # --- Score ---
-    score, total_length, total_waste, cleaned_set = compute_score(
+    score, coverage, efficiency, total_length, total_waste, l_max, w_max, cleaned_set = compute_score(
         instance, clean_per_vehicle)
 
     mandatory_cleaned = sum(
@@ -153,10 +153,14 @@ def main():
         1 for j in cleaned_set if instance['streets'][j]['cat'] == 'O')
 
     print(f"\n[Score]")
+    print(f"  alpha                : {alpha:.3f}")
+    print(f"  L_max                : {l_max} m")
+    print(f"  W_max                : {w_max:.3f} L")
     print(f"  Total length cleaned : {total_length} m")
     print(f"  Total water wasted   : {total_waste:.3f} L")
-    print(f"  W penalty factor     : {W}")
-    print(f"  Score                : {score:.2f}")
+    print(f"  Coverage             : {coverage:.4f}")
+    print(f"  Efficiency           : {efficiency:.4f}")
+    print(f"  Score                : {score:.4f}")
     print(f"  Mandatory cleaned    : {mandatory_cleaned}/{cats['M']}")
     print(f"  Optional cleaned     : {optional_cleaned}/{cats['O']}")
     print(f"  Solver status        : {status_name}")

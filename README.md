@@ -29,10 +29,13 @@ python clipp_solver.py instances/toy.txt --time_limit 60 --num_workers 4
 - **Multiple vehicles** with different capacities: Small (10 L/km), Medium (20 L/km), Large (30 L/km)
 - **Three street categories**: Mandatory (must clean), Optional (extra coverage), Connector (traversal only)
 - **Capacity matching**: A vehicle can only clean a street if its capacity meets the street's requirement
-- **Water waste penalty**: Using a large vehicle on a light street wastes water — the objective penalises this
+- **Coverage-efficiency trade-off**: α balances cleaning more streets vs. minimizing water waste
 - **Time budget**: Every vehicle must complete its route within T seconds
 
-**Objective**: `Score = Total length cleaned − W × Total water wasted`
+**Objective**: `Score = α × Coverage + (1 − α) × Efficiency`
+
+Where `Coverage = TotalLengthCleaned / L_max` and
+`Efficiency = 1 − TotalWaste / W_max`.
 
 ## How It Works
 
@@ -47,7 +50,7 @@ Parse instance → Build directed graph → Dijkstra reachability check
 ## Instance Format
 
 ```
-N M T C S [W]           ← header: junctions, streets, time limit, vehicles, depot, [waste penalty]
+N M T C S [alpha]       ← header: junctions, streets, time limit, vehicles, depot, [0..1]
 [x y]                   ← optional: N lines of junction coordinates
 A B D cost length cat req   ← M street lines
 type1 type2 ...         ← C vehicle types (S/M/L)
@@ -56,7 +59,7 @@ type1 type2 ...         ← C vehicle types (S/M/L)
 **Example** (`instances/toy.txt`):
 
 ```
-6 10 300 3 0
+6 10 300 3 0 0.5
 0 1 2 30 200 M 10
 1 3 2 25 150 O 10
 1 2 2 35 300 M 20

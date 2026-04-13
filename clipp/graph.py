@@ -175,9 +175,16 @@ def connected_components(adj: dict) -> list[set[int]]:
     (arc direction is ignored for connectivity analysis).
     """
     all_nodes: set[int] = set(adj.keys())
-    for u in list(all_nodes):
-        for edge in adj[u]:
-            all_nodes.add(edge[0])
+    undirected: dict[int, set[int]] = collections.defaultdict(set)
+
+    for u, edges in adj.items():
+        all_nodes.add(u)
+        for edge in edges:
+            v = edge[0]
+            all_nodes.add(v)
+            # Weak connectivity: ignore edge direction for component search.
+            undirected[u].add(v)
+            undirected[v].add(u)
 
     visited: set[int] = set()
     components: list[set[int]] = []
@@ -188,12 +195,12 @@ def connected_components(adj: dict) -> list[set[int]]:
         comp: set[int] = set()
         queue = collections.deque([start])
         comp.add(start)
+        visited.add(start)
         while queue:
             u = queue.popleft()
-            visited.add(u)
-            for edge in adj.get(u, []):
-                v = edge[0]
-                if v not in comp:
+            for v in undirected.get(u, set()):
+                if v not in visited:
+                    visited.add(v)
                     comp.add(v)
                     queue.append(v)
         components.append(comp)

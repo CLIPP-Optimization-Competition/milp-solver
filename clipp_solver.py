@@ -105,7 +105,11 @@ def main():
         relaxed_mandatory=set(unreachable_mandatory))
 
     if f_vals is None:
-        print("\n[FAIL] No feasible solution found. Exiting.")
+        if status_name in ("OPTIMAL", "FEASIBLE"):
+            print("\n[FAIL] No connected solution found within the time limit.")
+            print("       Solver found a disconnected incumbent; rerun with more time.")
+        else:
+            print("\n[FAIL] No feasible solution found. Exiting.")
         sys.exit(1)
 
     arcs_list, _, _, _, _ = graph_info

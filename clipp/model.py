@@ -304,10 +304,14 @@ def _iterative_solve(
     until the solution is connected or the time budget runs out.
     """
     remaining_time = float(time_limit_sec)
-    max_iterations = 20
+    # Allow more subtour-cut rounds on harder instances, while keeping a cap.
+    max_iterations = max(20, min(500, int(max(time_limit_sec, 1) // 5)))
     f_vals = None
     clean_vals = None
     status_name = None
+    best_connected_f_vals = None
+    best_connected_clean_vals = None
+    best_connected_status = None
 
     for iteration in range(max_iterations):
         solver = cp_model.CpSolver()
@@ -330,46 +334,69 @@ def _iterative_solve(
         )
 
         if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-            if f_vals is not None:
+            if best_connected_f_vals is not None:
                 print("  Using best connected solution from previous iteration.")
+                f_vals = best_connected_f_vals
+                clean_vals = best_connected_clean_vals
+                status_name = best_connected_status
                 break
-            return None, None, None, None
+            return None, None, None, status_name
 
         # Extract current solution
-        f_vals = {
+        cand_f_vals = {
             (a, k): solver.value(f[a, k])
             for k in range(C) for a in range(A)
         }
-        clean_vals = {}
+        cand_clean_vals = {}
         for j in range(M):
             for k in range(C):
                 v = clean[j, k]
-                clean_vals[j, k] = (
+                cand_clean_vals[j, k] = (
                     solver.value(v) if isinstance(v, cp_model.IntVar) else 0
                 )
 
         # ---- Subtour elimination -------------------------------------------
         subtours_found = _eliminate_subtours(
-            model, f, f_vals, arcs, arc_max, A, C, S,
+            model, f, cand_f_vals, arcs, arc_max, A, C, S,
         )
 
         if not subtours_found:
-            print("  No subtours – all vehicle flows are connected.")
+            print("  No subtours - all vehicle flows are connected.")
+            f_vals = cand_f_vals
+            clean_vals = cand_clean_vals
+            best_connected_f_vals = cand_f_vals
+            best_connected_clean_vals = cand_clean_vals
+            best_connected_status = status_name
             break
 
         if remaining_time <= 2.0:
             print("  [Warning] Time budget exhausted during subtour elimination.")
-            break
+            if best_connected_f_vals is not None:
+                print("  Returning last connected solution.")
+                f_vals = best_connected_f_vals
+                clean_vals = best_connected_clean_vals
+                status_name = best_connected_status
+                break
+
+            print("  No connected solution found within time budget.")
+            return None, None, None, status_name
 
         # Hint solver with current solution for faster re-solve
         if hasattr(model, "clear_hints"):
             model.clear_hints()
         for k in range(C):
             for a in range(A):
-                model.add_hint(f[a, k], f_vals[a, k])
+                model.add_hint(f[a, k], cand_f_vals[a, k])
             for j in range(M):
                 if isinstance(clean[j, k], cp_model.IntVar):
-                    model.add_hint(clean[j, k], clean_vals[j, k])
+                    model.add_hint(clean[j, k], cand_clean_vals[j, k])
+
+    if f_vals is None and remaining_time > 2.0:
+        print(
+            f"  [Warning] Iteration limit reached ({max_iterations}) "
+            "before finding a connected solution."
+        )
+        return None, None, None, status_name
 
     return (
         f_vals,

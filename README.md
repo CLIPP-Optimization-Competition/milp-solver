@@ -7,6 +7,10 @@ Given a city street network, a fleet of heterogeneous cleaning vehicles, and a t
 ## Quick Start
 
 ```bash
+# Create a conda environment
+conda create -n clipp_milp python=3.10
+conda activate clipp_milp
+
 # Install dependencies
 pip install -r requirements.txt
 
